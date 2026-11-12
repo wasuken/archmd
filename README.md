@@ -24,6 +24,8 @@ common.md には全プロジェクト共通のルール（例えばドキュメ�
 
 ## Examples
 
+`archmd init --write-agents` は既存の AGENTS.md（無ければ CLAUDE.md）にブロックを追記し、既にブロックがあれば何もしません。
+
 ARCHITECTURE.md を更新する例（`<agent>` を利用するエージェントのコマンドに置き換えます）：
 
 ```sh

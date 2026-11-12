@@ -10,3 +10,6 @@ Examples:
   archmd prompt | claude -p && archmd check
   archmd prompt | codex exec - && archmd check
   書き込み権限のフラグは各エージェントのドキュメントを確認してください。
+
+Init:
+  init --write-agents: 既存の AGENTS.md / CLAUDE.md にブロックを追記する。既にあれば何もしない
