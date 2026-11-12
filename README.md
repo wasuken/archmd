@@ -1,0 +1,69 @@
+# archmd
+
+AGENTS.md の運用ブロック、ARCHITECTURE.md.template（全12節の見本）、ARCHITECTURE.md（現在の構成）の3つで、archmd が無くても文書を維持できます。変更と同じタスクで該当節を更新し、節の追加時はテンプレから見出しと ID をコピーします。リポジトリで確認できた内容だけを書きます。
+
+archmd は配置と検証を補助する軽量 CLI。`init` で3ファイルを配置し、`check` で整合を検証、`prompt` でエージェントへの更新依頼を出力します。`split` / `build` は文書の分割・再生成、`remove` は文書と運用ブロックの撤去を補助します。Go 1.22 以上と標準ライブラリだけで動作し、実行時に LLM やネットワークへアクセスしません。
+
+```sh
+go build -o archmd .
+./archmd init --max-lines 300
+./archmd prompt --max-lines 300 --dir .
+./archmd check --max-lines 300 --max-section-lines 80
+./archmd split
+./archmd build
+./archmd template
+./archmd notices
+./archmd version
+./archmd help
+./archmd remove
+```
+
+全コマンドで `--dir <path>` を指定できます（サブコマンドの前後どちらでも可）。`init` は ARCHITECTURE.md.template に全12節を、ARCHITECTURE.md に必須4節（project-structure、high-level-diagram、core-components、project-identification）の骨組みを配置します。既存の ARCHITECTURE.md.template、ARCHITECTURE.md、AGENTS.md、CLAUDE.md は変更しません。既存のエージェント設定があれば追記用ブロックを標準出力へ出します。共通ルールは `os.UserConfigDir()/architecture-md/common.md` から読み込みます。
+
+common.md には全プロジェクト共通のルール（例えばドキュメントの言語）を書きます。init が生成するブロックと prompt の出力に含まれます。`archmd help` の Configuration 節で実パスと存在状況（found / not found）を確認できます。init は毎回このパスの案内を標準エラーに出します。
+
+## Examples
+
+ARCHITECTURE.md を更新する例（`<agent>` を利用するエージェントのコマンドに置き換えます）：
+
+```sh
+archmd prompt | <agent> && archmd check
+archmd prompt | claude -p && archmd check
+archmd prompt | codex exec - && archmd check
+```
+
+書き込み権限のフラグは各エージェントのドキュメントを確認してください。init は ARCHITECTURE.md を新規作成した場合だけ、骨組みをエージェントに埋めてもらう Next 案内を標準エラーの末尾に出します。
+
+`prompt` は更新依頼、編集モード、init と共通のルール、現在の check 診断、終了条件を英語で標準出力へ出します。ファイルは作成・変更せず、外部コマンドも呼びません。出力を AI エージェントへの指示に利用できます。
+
+`remove` は削除対象と警告を表示する dry-run です。`--yes` を指定すると ARCHITECTURE.md、`.architecture/`、AGENTS.md（無ければ CLAUDE.md）の archmd ブロックを削除します。ブロック内の手書きの追記も削除されます。`--keep-architecture-md` で ARCHITECTURE.md を残せます（先頭の生成ヘッダは除去）。ユーザー設定ディレクトリの common.md には触りません。
+
+`.architecture/` がある場合はその中の Markdown を編集し、`archmd build` を実行してください。`check` は生成物とのバイト単位の一致も検証します。終了コードは正常時 0、チェックの ERROR またはファイル操作失敗時 1、引数の誤りで 2 です。
+
+検証: `go test ./...`、`go vet ./...`、`gofmt -l .`。
+
+節構成の発想は https://architecture.md/ (https://github.com/timajwilliams/architecture) に着想を得ている。文言・ヒント・指示文は独自に書いたもの。
+
+## tips
+
+ドキュメントを日本語にしたい場合にcommon.mdに挿入するPROMPT例:
+
+```
+ドキュメントとコメントは基本日本語で書く。ARCHITECTURE.md の見出し(H2)も日本語に翻訳してよい。ただし `<!-- arch:... -->` のIDマーカーは絶対に変更しない。
+```
+
+## Assumptions
+
+- 行数は LF で区切った物理行数とし、末尾 LF は余分な空行に数えず、空ファイルは 0 行とする。読み込み時は CRLF と CR を LF に正規化するが、drift は元のバイト列で比較する。
+- 行数制限は正の整数のみ受け付け、省略した総行数制限は無制限とする。引数エラー以外のファイル操作失敗は終了コード 1 とし、check では io コードで報告する。
+- マーカーは行全体が指定形式に一致する非空 ID とし、フェンス付きコードブロック内のマーカーと H2 は解析対象外とする。H2 は空白を除いた行頭の `## ` または `##` とする。
+- AGENTS.md と CLAUDE.md が両方存在する場合、init のブロック有無は両方を調べ、check の言及検出は AGENTS.md を優先する。
+- build は直下の通常ファイルで拡張子が `.md` のものだけを結合し、末尾 LF を一つに揃え、ファイル間に空行を一つ置く。空ディレクトリでは生成ヘッダだけを出力する。
+- split は空のヘッダ部も 00-header.md に保存する。重複 ID と Windows を含む安全なファイル名にできない ID は書き込み前にエラーとし、既存の生成ヘッダは行全体が一致した場合だけ取り除く。
+- 既知 ID に異なる H2 が対応していても追加の診断は出さない。common.md の欠落以外の読み込みエラーは無視せず報告する。
+- prompt は check に ERROR があっても指示文の出力に成功すれば終了コード 0 とし、--max-lines は埋め込む check にも適用する。check 出力からは指定された診断行と lines 行を含め、summary 行は含めない。
+- remove は複数の正常なブロックを全て除去し、入れ子・余分なマーカーも不正として全対象の変更前に中止する。マーカーを含む行を両端とし、直後の空白文字だけの行も空行として一つだけ除去する。マーカーが無い設定ファイルは内容が空白だけでも保持する。
+- remove の --keep-architecture-md は生成ヘッダ以外のバイト列と改行を保持する。対象直下のシンボリックリンクと想定外のファイル種別は、対象外への書き込みを避けるため全対象の変更前にエラーとする。OS の削除・書き込み失敗時のロールバックは行わない。
+- init の Next 案内は ARCHITECTURE.md の新規作成を含む処理が正常終了した場合だけ出す。common.md のパス解決・存在確認で欠落以外のエラーがあれば、help と init は終了コード 1 で報告する。
+- init の標準出力は運用ブロックだけという従来の契約を維持し、本文の指定変更に限って golden を更新する（本文変更と変更前のバイト列維持は両立しない）。
+- remove の削除対象は従来どおりとし、ARCHITECTURE.md.template は保持する。

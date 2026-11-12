@@ -1,0 +1,10 @@
+INFO [unused-section] unused ID: data-stores
+INFO [unused-section] unused ID: external-integrations
+INFO [unused-section] unused ID: deployment-infrastructure
+INFO [unused-section] unused ID: decisions
+INFO [unused-section] unused ID: security-considerations
+INFO [unused-section] unused ID: dev-testing-environment
+INFO [unused-section] unused ID: future-considerations
+INFO [unused-section] unused ID: glossary
+lines: 17
+summary: 0 ERROR, 0 WARN, 8 INFO

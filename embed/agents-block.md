@@ -1,0 +1,11 @@
+<!-- Section layout inspired by https://architecture.md/ -->
+- Read ARCHITECTURE.md first before working; it summarizes this repository's architecture.
+- When your change affects the project structure, components, data stores, external integrations, or deployment, update ARCHITECTURE.md in the same task.
+- Update only the affected sections; do not rewrite the whole file. Keep the ID markers (`<!-- arch:... -->`) of retained sections unchanged.
+- Remove sections that do not currently apply. Before adding a section, copy its heading and ID exactly from ARCHITECTURE.md.template.
+- Be concise. For data stores, list table or collection names only. Put long setup instructions in CONTRIBUTING.md, and remove hint comments once filled in.
+- Only document what the repository evidences. Do not invent systems, services, data stores, or integrations; when something is unclear, write "Not confirmed from the repository."
+- Before finishing, verify that every component, service, data store, and integration you named actually exists in the repository, and that each major source directory is covered.
+- The document should answer: if I need to change X, where do I look and what does it affect? Prefer durable structure over volatile implementation details.
+- If `archmd` is installed, run `archmd check` after editing and resolve every ERROR. Without it, keep every ID marker and keep the required sections: project-structure, high-level-diagram, core-components, project-identification.
+- If `.architecture/` exists (this requires `archmd`), ARCHITECTURE.md is generated: edit the files in `.architecture/` and then run `archmd build`; never edit ARCHITECTURE.md directly.
