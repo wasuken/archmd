@@ -1,10 +1,11 @@
-INFO [unused-section] unused ID: data-stores
-INFO [unused-section] unused ID: external-integrations
-INFO [unused-section] unused ID: deployment-infrastructure
-INFO [unused-section] unused ID: decisions
-INFO [unused-section] unused ID: security-considerations
-INFO [unused-section] unused ID: dev-testing-environment
-INFO [unused-section] unused ID: future-considerations
-INFO [unused-section] unused ID: glossary
-lines: 17
-summary: 0 ERROR, 0 WARN, 8 INFO
+WARN [missing-marker] missing ID data-stores; add <!-- arch:data-stores | Data stores | Name persistent stores and their tables or collections without detailed schemas. --> after known ID core-components
+WARN [missing-marker] missing ID external-integrations; add <!-- arch:external-integrations | External services | Identify outside services and the reason each connection exists. --> after known ID data-stores
+WARN [missing-marker] missing ID deployment-infrastructure; add <!-- arch:deployment-infrastructure | Build and deploy | Outline where the system runs and how changes reach it. --> after known ID external-integrations
+WARN [missing-marker] missing ID decisions; add <!-- arch:decisions | Key decisions | Summarize each decision and its reason in one line. --> after known ID deployment-infrastructure
+WARN [missing-marker] missing ID security-considerations; add <!-- arch:security-considerations | Security | Summarize access boundaries and protections for sensitive information. --> after known ID decisions
+WARN [missing-marker] missing ID dev-testing-environment; add <!-- arch:dev-testing-environment | Development and testing | Name essential development tools and checks and link to setup instructions. --> after known ID security-considerations
+WARN [missing-marker] missing ID future-considerations; add <!-- arch:future-considerations | Roadmap and known debt | Record likely architectural changes and unresolved design constraints. --> after known ID dev-testing-environment
+WARN [missing-marker] missing ID glossary; add <!-- arch:glossary | Glossary | Define local terminology that a new contributor needs to understand. --> after known ID project-identification
+WARN [legacy-format] ARCHITECTURE.md uses the pre-0.2.0 format. Regenerate it: archmd remove --yes && archmd init --write-agents && archmd prompt | <agent>
+lines: 13
+summary: 0 ERROR, 9 WARN, 0 INFO

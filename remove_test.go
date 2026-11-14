@@ -52,15 +52,16 @@ func TestRemoveDryRunAndCommonUntouched(t *testing.T) {
 func TestInitRemovePreservesLocalTemplate(t *testing.T) {
 	config(t)
 	dir := t.TempDir()
-	requireSuccess(t, "init", "--dir", dir)
 	path := filepath.Join(dir, "ARCHITECTURE.md.template")
+	write(t, path, "custom template\r\n\x00")
 	before := snapshotPromptFiles(t, dir)["ARCHITECTURE.md.template"]
+	requireSuccess(t, "init", "--dir", dir)
 	out := requireSuccess(t, "remove", "--yes", "--dir", dir)
 	entries, err := os.ReadDir(dir)
 	if err != nil || len(entries) != 1 || entries[0].Name() != "ARCHITECTURE.md.template" {
 		t.Fatalf("unexpected remaining files: %v %v", entries, err)
 	}
-	if read(t, path) != architectureTemplate || before != snapshotPromptFiles(t, dir)["ARCHITECTURE.md.template"] {
+	if read(t, path) != "custom template\r\n\x00" || before != snapshotPromptFiles(t, dir)["ARCHITECTURE.md.template"] {
 		t.Fatal("remove がテンプレートを変更した")
 	}
 	for _, result := range []string{"ARCHITECTURE.md: removed", ".architecture: skipped(not found)", "AGENTS.md: removed"} {

@@ -68,7 +68,7 @@ func checkProject(dir string, maxLines, maxSectionLines int, out io.Writer) int 
 		}
 	} else {
 		d := parseDocument(string(data))
-		lineCount = len(d.lines)
+		lineCount = len(d.lines) - len(d.sections)
 		known := map[string]bool{}
 		for _, def := range knownSections {
 			known[def.id] = true
@@ -82,24 +82,30 @@ func checkProject(dir string, maxLines, maxSectionLines int, out io.Writer) int 
 			if !known[s.id] {
 				report("WARN", "unknown-id", "unknown ID: "+s.id)
 			}
-			if s.end-s.start > maxSectionLines {
-				report("WARN", "section-lines", fmt.Sprintf("%s: %d lines exceeds limit %d", s.id, s.end-s.start, maxSectionLines))
+			if s.end-s.start-1 > maxSectionLines {
+				report("WARN", "section-lines", fmt.Sprintf("%s: %d lines exceeds limit %d", s.id, s.end-s.start-1, maxSectionLines))
 			}
 		}
-		for _, def := range knownSections {
+		for i, def := range knownSections {
 			if counts[def.id] == 0 {
 				if def.required {
 					report("ERROR", "required-missing", "missing required ID: "+def.id)
 				} else {
-					report("INFO", "unused-section", "unused ID: "+def.id)
+					report("WARN", "missing-marker", fmt.Sprintf("missing ID %s; add %s after known ID %s", def.id, def.marker(), knownSections[i-1].id))
 				}
 			}
 		}
 		for _, line := range d.unknownHeadings {
-			report("WARN", "unknown-heading", fmt.Sprintf("line %d: H2 without a marker or marker not immediately followed by H2", line))
+			report("WARN", "unknown-heading", fmt.Sprintf("line %d: H2 without a marker or first nonblank line after marker is not H2", line))
 		}
 		if maxLines > 0 && lineCount > maxLines {
 			report("ERROR", "max-lines", fmt.Sprintf("current %d lines, limit %d, excess %d", lineCount, maxLines, lineCount-maxLines))
+		}
+		for _, s := range d.sections {
+			if !strings.Contains(d.lines[s.start], " | ") {
+				report("WARN", "legacy-format", "ARCHITECTURE.md uses the pre-0.2.0 format. Regenerate it: archmd remove --yes && archmd init --write-agents && archmd prompt | <agent>")
+				break
+			}
 		}
 	}
 	if _, statErr := os.Stat(filepath.Join(dir, ".architecture")); statErr == nil {
@@ -112,7 +118,11 @@ func checkProject(dir string, maxLines, maxSectionLines int, out io.Writer) int 
 	} else if !os.IsNotExist(statErr) {
 		report("ERROR", "io", statErr.Error())
 	}
-	if template, err := os.ReadFile(filepath.Join(dir, "ARCHITECTURE.md.template")); err == nil {
+	templatePath := filepath.Join(dir, "ARCHITECTURE.md.template")
+	if _, err := os.Lstat(templatePath); err == nil {
+		report("WARN", "legacy-template", "ARCHITECTURE.md.template is no longer used since v0.2.0. Delete it manually.")
+	}
+	if template, err := os.ReadFile(templatePath); err == nil {
 		firstLine, _, _ := strings.Cut(string(template), "\n")
 		match := templateVersionPattern.FindStringSubmatch(strings.TrimSuffix(firstLine, "\r"))
 		if match != nil && isOlderVersion(match[1], version) {

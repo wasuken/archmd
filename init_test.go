@@ -99,7 +99,7 @@ func TestInitWriteAgentsNewFileMatchesDefault(t *testing.T) {
 	if code != 0 || flagCode != code || flagOut != out || flagErr != stderr {
 		t.Fatalf("新規作成時の出力が異なる: %d %q %q / %d %q %q", code, out, stderr, flagCode, flagOut, flagErr)
 	}
-	for _, name := range []string{"ARCHITECTURE.md", "ARCHITECTURE.md.template", "AGENTS.md"} {
+	for _, name := range []string{"ARCHITECTURE.md", "AGENTS.md"} {
 		if read(t, filepath.Join(plain, name)) != read(t, filepath.Join(flagged, name)) {
 			t.Fatalf("新規作成時のバイト列が異なる: %s", name)
 		}

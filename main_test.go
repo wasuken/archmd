@@ -90,7 +90,9 @@ func TestInitAndIdempotence(t *testing.T) {
 	if !archInfo.ModTime().Equal(afterArch.ModTime()) || !agentsInfo.ModTime().Equal(afterAgents.ModTime()) {
 		t.Fatal("second init rewrote files")
 	}
-	requireSuccess(t, "check", "--dir", dir)
+	if out := requireSuccess(t, "check", "--dir", dir); !strings.Contains(out, "summary: 0 ERROR, 0 WARN, 0 INFO") {
+		t.Fatal(out)
+	}
 }
 
 func TestInitExistingInstructionsAndCommon(t *testing.T) {
@@ -110,7 +112,7 @@ func TestInitExistingInstructionsAndCommon(t *testing.T) {
 				path := filepath.Join(dir, name)
 				write(t, path, original)
 				code, out, stderr := invoke("init", "--dir", dir)
-				if code != 0 || read(t, path) != original || !strings.Contains(out, "<!-- archmd:start v0.1.0 -->") || !strings.Contains(out, "<!-- archmd:end -->") || !strings.Contains(stderr, "manually") {
+				if code != 0 || read(t, path) != original || !strings.Contains(out, "<!-- archmd:start v"+version+" -->") || !strings.Contains(out, "<!-- archmd:end -->") || !strings.Contains(stderr, "manually") {
 					t.Fatalf("init: %d %q %q", code, out, stderr)
 				}
 				if strings.Contains(out, "Shared custom rules.") != withCommon || strings.Contains(out, "\r") {
@@ -180,7 +182,7 @@ func TestCheckDiagnosticCodes(t *testing.T) {
 		{name: "heading", text: "## Unmarked\n", code: "unknown-heading"},
 		{name: "malformed-heading", text: "<!-- arch:custom -->\ntext\n", code: "unknown-heading"},
 		{name: "unknown", text: "<!-- arch:custom -->\n## Custom\n", code: "unknown-id"},
-		{name: "section", code: "section-lines", args: []string{"--max-section-lines", "3"}},
+		{name: "section", code: "section-lines", args: []string{"--max-section-lines", "2"}},
 		{name: "reference", agent: "no mention", code: "no-reference"},
 		{name: "agents", agent: "REMOVE", code: "no-agents-file"},
 		{name: "missing-file", text: "REMOVE", code: "no-architecture-file", exit: 1},
@@ -210,7 +212,7 @@ func TestCheckDiagnosticCodes(t *testing.T) {
 			if code != tc.exit || !strings.Contains(out, "["+tc.code+"]") {
 				t.Fatalf("%d %s %s", code, out, stderr)
 			}
-			if tc.name == "max" && !strings.Contains(out, "current 17 lines, limit 10, excess 7") {
+			if tc.name == "max" && !strings.Contains(out, "current 13 lines, limit 10, excess 3") {
 				t.Fatal(out)
 			}
 			if !strings.Contains(out, "lines: ") || !strings.Contains(out, "summary: ") {
@@ -225,7 +227,7 @@ func TestCheckMax300(t *testing.T) {
 		t.Run(fmt.Sprint(n), func(t *testing.T) {
 			dir := baseProject(t)
 			text := fixture(t, "minimal.md")
-			text += strings.Repeat("body\n", n-len(linesOf(text)))
+			text += strings.Repeat("body\n", n-len(linesOf(text))+len(parseDocument(text).sections))
 			write(t, filepath.Join(dir, "ARCHITECTURE.md"), text)
 			code, out, _ := invoke("check", "--dir", dir, "--max-lines", "300")
 			want := 0
@@ -362,7 +364,7 @@ func TestCLIArgumentsAndOutputs(t *testing.T) {
 			t.Errorf("%v: got %d", args, code)
 		}
 	}
-	for _, tc := range []struct{ cmd, expected string }{{"template", architectureTemplate}, {"notices", thirdPartyNotices}, {"version", "0.1.0\n"}} {
+	for _, tc := range []struct{ cmd, expected string }{{"template", architectureTemplate}, {"notices", thirdPartyNotices}, {"version", version + "\n"}} {
 		if got := requireSuccess(t, tc.cmd, "--dir", t.TempDir()); got != tc.expected {
 			t.Errorf("%s differs", tc.cmd)
 		}

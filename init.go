@@ -49,7 +49,6 @@ func initProject(dir string, maxLines int, writeAgents bool, out, errOut io.Writ
 		}
 	}()
 	for _, file := range []struct{ name, content string }{
-		{"ARCHITECTURE.md.template", architectureTemplate},
 		{"ARCHITECTURE.md", architectureSkeleton()},
 	} {
 		path := filepath.Join(dir, file.name)

@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-const version = "0.1.0"
+const version = "0.2.0"
 const usage = "usage: archmd [--dir path] <init|prompt|remove|check|build|split|template|notices|version|help> [options]\n"
 const agentExamples = "  archmd prompt | <agent> && archmd check\n" +
 	"  archmd prompt | claude -p && archmd check\n" +

@@ -11,18 +11,12 @@ func TestTemplateVersionAndSkeletonHeader(t *testing.T) {
 	dir := t.TempDir()
 	requireSuccess(t, "init", "--dir", dir)
 	output := requireSuccess(t, "template")
-	installed := read(t, filepath.Join(dir, "ARCHITECTURE.md.template"))
 	header := "<!-- archmd template v" + version + " | Section layout inspired by https://architecture.md/ -->"
-	for _, content := range []string{output, installed} {
-		first, _, _ := strings.Cut(content, "\n")
-		if first != header || strings.Contains(content, "{{VERSION}}") {
-			t.Fatalf("テンプレートの版が不正: %q", first)
-		}
-		if content != strings.Replace(architectureTemplateSource, "{{VERSION}}", version, 1) {
-			t.Fatal("プレースホルダー以外の本文が変わった")
-		}
+	first, _, _ := strings.Cut(output, "\n")
+	if first != header || strings.Contains(output, "{{VERSION}}") {
+		t.Fatalf("テンプレートの版が不正: %q", first)
 	}
-	first, _, _ := strings.Cut(read(t, filepath.Join(dir, "ARCHITECTURE.md")), "\n")
+	first, _, _ = strings.Cut(read(t, filepath.Join(dir, "ARCHITECTURE.md")), "\n")
 	if first != "<!-- Section layout inspired by https://architecture.md/ -->" {
 		t.Fatalf("骨組みの先頭コメントが変わった: %q", first)
 	}

@@ -146,27 +146,27 @@ func TestInitSkeletonAndLocalTemplate(t *testing.T) {
 	if code != 0 || out != "" {
 		t.Fatalf("init: %d %q %q", code, out, stderr)
 	}
-	if !strings.Contains(stderr, "ARCHITECTURE.md.template: created\n") {
-		t.Fatal(stderr)
+	if _, err := os.Stat(filepath.Join(dir, "ARCHITECTURE.md.template")); !os.IsNotExist(err) {
+		t.Fatal("テンプレートが作られた")
 	}
-	full := read(t, filepath.Join(dir, "ARCHITECTURE.md.template"))
-	if full != architectureTemplate || len(parseDocument(full).sections) != 12 {
-		t.Fatal("全12節のテンプレートが配置されていない")
-	}
+	full := requireSuccess(t, "template")
 	arch := read(t, filepath.Join(dir, "ARCHITECTURE.md"))
 	d := parseDocument(arch)
-	ids := []string{"project-structure", "high-level-diagram", "core-components", "project-identification"}
-	if len(d.sections) != len(ids) || len(d.unknownHeadings) != 0 {
+	if len(d.sections) != 12 || len(d.unknownHeadings) != 0 {
 		t.Fatal("骨組みの節数または見出しが不正")
 	}
-	for i, id := range ids {
+	for i, def := range knownSections {
 		s := d.sections[i]
-		if s.id != id {
-			t.Fatalf("section %d: %s", i, s.id)
+		if s.id != def.id || d.lines[s.start] != def.marker() {
+			t.Fatalf("マーカーが不正: %s", def.id)
 		}
-		chunk := strings.Join(d.lines[s.start:s.start+3], "\n") + "\n"
-		if !strings.Contains(full, chunk) {
-			t.Fatalf("テンプレートとマーカー・見出し・ヒントが異なる: %s", id)
+		body := d.lines[s.start+1 : s.end]
+		if def.required {
+			if len(body) != 1 || body[0] != "## "+def.heading {
+				t.Fatalf("必須節の骨組みが不正: %s", def.id)
+			}
+		} else if len(body) != 0 {
+			t.Fatalf("空の節に本文がある: %s", def.id)
 		}
 	}
 	for _, content := range []string{full, arch, read(t, filepath.Join(dir, "AGENTS.md"))} {
@@ -188,7 +188,7 @@ func TestInitPreservesExistingLocalTemplate(t *testing.T) {
 	write(t, path, custom)
 	before := snapshotPromptFiles(t, dir)
 	code, out, stderr := invoke("init", "--dir", dir)
-	if code != 0 || out != fixture(t, "agents.golden") || !strings.Contains(stderr, "ARCHITECTURE.md.template: skipped (exists)\n") {
+	if code != 0 || out != fixture(t, "agents.golden") || strings.Contains(stderr, "ARCHITECTURE.md.template") {
 		t.Fatalf("init: %d %q %q", code, out, stderr)
 	}
 	if !reflect.DeepEqual(before, snapshotPromptFiles(t, dir)) {
@@ -205,7 +205,7 @@ func TestToolIndependentRules(t *testing.T) {
 	for _, content := range []string{block, prompt} {
 		for _, want := range []string{
 			"When your change affects the project structure, components, data stores, external integrations, or deployment, update ARCHITECTURE.md in the same task.",
-			"copy its heading and ID exactly from ARCHITECTURE.md.template",
+			"Never delete or edit the `<!-- arch:... -->` marker lines",
 			"Only document what the repository evidences",
 			"Not confirmed from the repository.",
 			"verify that every component, service, data store, and integration",
@@ -219,7 +219,7 @@ func TestToolIndependentRules(t *testing.T) {
 				t.Errorf("運用ルールがない: %s", want)
 			}
 		}
-		if strings.Contains(content, "archmd template") {
+		if strings.Contains(content, "archmd template") || strings.Contains(content, "ARCHITECTURE.md.template") {
 			t.Fatal("運用ルールが template コマンドに依存している")
 		}
 	}

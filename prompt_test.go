@@ -97,8 +97,15 @@ func TestPromptModesDeterminismAndReadOnly(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				rules := strings.TrimSuffix(strings.TrimPrefix(block, "<!-- archmd:start v0.1.0 -->\n"), "<!-- archmd:end -->\n")
+				rules := strings.TrimSuffix(strings.TrimPrefix(block, "<!-- archmd:start v"+version+" -->\n"), "<!-- archmd:end -->\n")
 				_, diagnostics, _ := invoke("check", "--dir", dir)
+				var kept []string
+				for _, line := range strings.Split(diagnostics, "\n") {
+					if !strings.HasPrefix(line, "WARN [legacy-format] ") && !strings.HasPrefix(line, "WARN [legacy-template] ") {
+						kept = append(kept, line)
+					}
+				}
+				diagnostics = strings.Join(kept, "\n")
 				summaryIndex := strings.Index(diagnostics, "summary:")
 				if summaryIndex < 0 {
 					t.Fatal("check summary missing")
@@ -140,7 +147,7 @@ func TestPromptMaxLines(t *testing.T) {
 	config(t)
 	dir := baseProject(t)
 	path := filepath.Join(dir, "ARCHITECTURE.md")
-	write(t, path, read(t, path)+strings.Repeat("body\n", 284))
+	write(t, path, read(t, path)+strings.Repeat("body\n", 288))
 	code, out, stderr := invoke("prompt", "--max-lines", "300", "--dir", dir)
 	if code != 0 || stderr != "" {
 		t.Fatalf("%d %s %s", code, out, stderr)
@@ -159,7 +166,7 @@ func TestPromptMaxLines(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rules := strings.TrimSuffix(strings.TrimPrefix(block, "<!-- archmd:start v0.1.0 -->\n"), "<!-- archmd:end -->\n")
+	rules := strings.TrimSuffix(strings.TrimPrefix(block, "<!-- archmd:start v"+version+" -->\n"), "<!-- archmd:end -->\n")
 	if !strings.Contains(out, rules) {
 		t.Fatal("prompt and init rules differ with --max-lines")
 	}
@@ -188,5 +195,32 @@ func TestPromptArgumentsAndCommonError(t *testing.T) {
 	}
 	if !reflect.DeepEqual(before, snapshotPromptFiles(t, dir)) {
 		t.Fatal("failed prompt changed files")
+	}
+}
+
+func TestPromptOmitsLegacyWarnings(t *testing.T) {
+	config(t)
+	dir := baseProject(t)
+	write(t, filepath.Join(dir, "ARCHITECTURE.md.template"), "<!-- archmd template v0.1.0 -->\n")
+	check := requireSuccess(t, "check", "--dir", dir)
+	for _, want := range []string{"WARN [legacy-format]", "WARN [legacy-template]", "INFO [outdated-template]", "WARN [missing-marker]"} {
+		if !strings.Contains(check, want) {
+			t.Fatalf("check に診断がない: %s", want)
+		}
+	}
+	before := snapshotPromptFiles(t, dir)
+	prompt := requireSuccess(t, "prompt", "--dir", dir)
+	for _, unwanted := range []string{"legacy-format", "legacy-template", "archmd remove", "Delete it manually.", "Regenerate it:"} {
+		if strings.Contains(prompt, unwanted) {
+			t.Errorf("prompt に除外対象が含まれる: %s", unwanted)
+		}
+	}
+	for _, want := range []string{"INFO [outdated-template]", "WARN [missing-marker]", "lines: 13\n"} {
+		if !strings.Contains(prompt, want) {
+			t.Errorf("prompt から必要な診断が消えた: %s", want)
+		}
+	}
+	if !reflect.DeepEqual(before, snapshotPromptFiles(t, dir)) {
+		t.Fatal("prompt が既存ファイルを変更した")
 	}
 }

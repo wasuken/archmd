@@ -1,8 +1,8 @@
 # archmd
 
-AGENTS.md の運用ブロック、ARCHITECTURE.md.template（全12節の見本）、ARCHITECTURE.md（現在の構成）の3つで、archmd が無くても文書を維持できます。変更と同じタスクで該当節を更新し、節の追加時はテンプレから見出しと ID をコピーします。リポジトリで確認できた内容だけを書きます。
+AGENTS.md の運用ブロックと ARCHITECTURE.md（現在の構成）で、archmd が無くても文書を維持できます。ARCHITECTURE.md 内には全12節のマーカー行が常駐し、見出しとヒントを持ちます。マーカー行は削除・編集せず、書くことがない節は見出しと本文だけを取り除きます。空の節を埋めるときは、マーカー内の見出しを使って直下に H2 を書きます。変更と同じタスクで該当節を更新し、リポジトリで確認できた内容だけを書きます。
 
-archmd は配置と検証を補助する軽量 CLI。`init` で3ファイルを配置し、`check` で整合を検証、`prompt` でエージェントへの更新依頼を出力します。`split` / `build` は文書の分割・再生成、`remove` は文書と運用ブロックの撤去を補助します。Go 1.22 以上と標準ライブラリだけで動作し、実行時に LLM やネットワークへアクセスしません。
+archmd は配置と検証を補助する軽量 CLI。`init` で2ファイルを配置し、`check` で整合を検証、`prompt` でエージェントへの更新依頼を出力します。`split` / `build` は文書の分割・再生成、`remove` は文書と運用ブロックの撤去を補助します。Go 1.22 以上と標準ライブラリだけで動作し、実行時に LLM やネットワークへアクセスしません。
 
 ```sh
 go build -o archmd .
@@ -18,7 +18,7 @@ go build -o archmd .
 ./archmd remove
 ```
 
-全コマンドで `--dir <path>` を指定できます（サブコマンドの前後どちらでも可）。`init` は ARCHITECTURE.md.template に全12節を、ARCHITECTURE.md に必須4節（project-structure、high-level-diagram、core-components、project-identification）の骨組みを配置します。既存の ARCHITECTURE.md.template、ARCHITECTURE.md、AGENTS.md、CLAUDE.md は変更しません。既存のエージェント設定があれば追記用ブロックを標準出力へ出します。共通ルールは `os.UserConfigDir()/architecture-md/common.md` から読み込みます。
+全コマンドで `--dir <path>` を指定できます（サブコマンドの前後どちらでも可）。`init` は ARCHITECTURE.md に既知の順序で全12節のマーカーを配置し、必須4節（project-structure、high-level-diagram、core-components、project-identification）だけに H2 見出しを置きます。他の8節はマーカーのみです。ARCHITECTURE.md.template は新規作成せず、既存ファイルも読み書きしません。既存の ARCHITECTURE.md、AGENTS.md、CLAUDE.md は変更しません。既存のエージェント設定があれば追記用ブロックを標準出力へ出します。共通ルールは `os.UserConfigDir()/architecture-md/common.md` から読み込みます。
 
 common.md には全プロジェクト共通のルール（例えばドキュメントの言語）を書きます。init が生成するブロックと prompt の出力に含まれます。`archmd help` の Configuration 節で実パスと存在状況（found / not found）を確認できます。init は毎回このパスの案内を標準エラーに出します。
 
@@ -46,10 +46,21 @@ archmd prompt | codex exec - && archmd check
 
 テンプレートの先頭コメントとエージェント設定の archmd ブロックには、生成した archmd の版が入ります。`check` はテンプレートまたはブロックの版が実行中の archmd より古い場合、`INFO [outdated-template]` / `INFO [outdated-block]` を出します。これらは情報通知で、ERROR が無ければ終了コードは 0 です。版の刻印が無い既存ファイルには通知しません。
 
-更新は自動で行いません。テンプレートの差分は `archmd template` の出力と見比べて手で反映してください。ブロックも必要な変更を確認して手で反映します。`init` は既存テンプレートを上書きしません。
+更新は自動で行いません。テンプレートの差分は `archmd template` の出力と見比べて手で反映してください。ブロックも必要な変更を確認して手で反映します。`init` は既存テンプレートに触りません。
+
+旧形式の文書は移行せず、作り直してください。`archmd check` は旧形式のマーカーを `WARN [legacy-format]`、残っている ARCHITECTURE.md.template を `WARN [legacy-template]` で通知します。消す前に、コードから再生成できない記述（Key decisions など）を退避してください。その後、次の3コマンドで作り直します。
+
+```sh
+archmd remove --yes
+archmd init --write-agents
+archmd prompt | <agent>
+```
+
+ARCHITECTURE.md.template は手で削除してください。init と remove はこのファイルに触りません。prompt は作り直しの手順を追加せず、check 結果から legacy-format と legacy-template の警告を除外します。欠落した節の `WARN [missing-marker]` と版の古いテンプレートの `INFO [outdated-template]` は従来どおり出力します。v0.x の間は破壊的変更を許容します。
 
 ## Template changes
 
+- 0.2.0: マーカーに見出しとヒントを入れ、全12節のマーカーを ARCHITECTURE.md 内に常駐させる。.template は新規作成しない。unused-section を missing-marker に置き換え、マーカー行は行数に数えない。旧形式からの移行は作り直し（上記3コマンド）。.template は手で削除。消す前に、コードから再生成できない記述（Key decisions など）は退避すること。
 - 0.1.0: テンプレート先頭に版を刻印。古いテンプレート・ブロックを `check` の INFO で通知。
 
 ## ライセンスと出典
@@ -81,9 +92,9 @@ archmd notices > ARCHMD-NOTICES.txt
 
 ## Assumptions
 
-- 行数は LF で区切った物理行数とし、末尾 LF は余分な空行に数えず、空ファイルは 0 行とする。読み込み時は CRLF と CR を LF に正規化するが、drift は元のバイト列で比較する。
+- 行数は LF で区切った物理行数から、解析されたマーカー行（新旧両形式・未知 ID・重複を含む）を除く。総行数（`lines:`・`--max-lines`）と節ごとの行数（`--max-section-lines`）の両方に適用し、フェンス内のマーカー例は通常の行として数える。末尾 LF は余分な空行に数えず、空ファイルは 0 行とする。解析時は CRLF と CR を LF に正規化するが、drift は元のバイト列で比較する。
 - 行数制限は正の整数のみ受け付け、省略した総行数制限は無制限とする。引数エラー以外のファイル操作失敗は終了コード 1 とし、check では io コードで報告する。
-- マーカーは行全体が指定形式に一致する非空 ID とし、フェンス付きコードブロック内のマーカーと H2 は解析対象外とする。H2 は空白を除いた行頭の `## ` または `##` とする。
+- マーカーは行全体が指定形式に一致する非空 ID とし、新形式の最初の ` | ` より前を ID として扱う。heading・hint は検証しない。フェンス付きコードブロック内のマーカーと H2 は解析対象外とする。H2 は前後の空白を除いた `##` 単独、または `##` の直後に半角空白かタブがある行とする。マーカー後の空行は読み飛ばし、最初の非空行が H2 なら正常、次のマーカーまたは EOF なら空の節として正常とする。空の節は必須 ID でも許可する。
 - AGENTS.md と CLAUDE.md が両方存在する場合、init のブロック有無は両方を調べ、check の言及検出は AGENTS.md を優先する。
 - build は直下の通常ファイルで拡張子が `.md` のものだけを結合し、末尾 LF を一つに揃え、ファイル間に空行を一つ置く。空ディレクトリでは生成ヘッダだけを出力する。
 - split は空のヘッダ部も 00-header.md に保存する。重複 ID と Windows を含む安全なファイル名にできない ID は書き込み前にエラーとし、既存の生成ヘッダは行全体が一致した場合だけ取り除く。

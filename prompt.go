@@ -30,6 +30,9 @@ func promptProject(dir string, maxLines int, out io.Writer) error {
 	checkProject(dir, maxLines, 80, &diagnostics)
 	missing := false
 	for _, line := range strings.Split(diagnostics.String(), "\n") {
+		if strings.HasPrefix(line, "WARN [legacy-format] ") || strings.HasPrefix(line, "WARN [legacy-template] ") {
+			continue
+		}
 		if strings.HasPrefix(line, "ERROR [") || strings.HasPrefix(line, "WARN [") || strings.HasPrefix(line, "INFO [") || strings.HasPrefix(line, "lines: ") {
 			prompt.WriteString(line + "\n")
 		}

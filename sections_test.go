@@ -26,7 +26,7 @@ func TestTemplateStructure(t *testing.T) {
 	}
 	for i, def := range knownSections {
 		s := d.sections[i]
-		if s.id != def.id || d.lines[s.start+1] != "## "+def.heading || !strings.HasPrefix(d.lines[s.start+2], "<!-- hint: ") || !strings.HasSuffix(d.lines[s.start+2], " -->") {
+		if s.id != def.id || d.lines[s.start+1] != "## "+def.heading || d.lines[s.start] != def.marker() {
 			t.Errorf("bad section %s", def.id)
 		}
 	}
@@ -65,8 +65,12 @@ func TestSectionDefinitionsAndRequiredMissing(t *testing.T) {
 			if stderr != "" || (code == 1) != def.required || strings.Contains(out, "[required-missing]") != def.required {
 				t.Fatalf("required check: %d %s %s", code, out, stderr)
 			}
-			if !def.required && !strings.Contains(out, "INFO [unused-section] unused ID: "+def.id+"\n") {
-				t.Fatal(out)
+			if !def.required {
+				for _, want := range []string{"WARN [missing-marker] missing ID " + def.id, def.marker(), "after known ID " + knownSections[i-1].id} {
+					if !strings.Contains(out, want) {
+						t.Fatalf("不足マーカーの追加案内がない: %s", out)
+					}
+				}
 			}
 		})
 	}
@@ -111,5 +115,61 @@ func TestParserSectionRangesAndFences(t *testing.T) {
 	}
 	if d.sections[0].start != 5 || d.sections[0].end != 9 || d.sections[1].start != 9 || d.sections[1].end != 15 {
 		t.Fatal(d.sections)
+	}
+}
+
+func TestMarkerMetadataCompatibility(t *testing.T) {
+	for _, tc := range []struct {
+		line, id string
+		valid    bool
+	}{
+		{"<!-- arch:custom -->", "custom", true},
+		{"<!-- arch:custom | 見出し | hint | extra -->", "custom", true},
+		{"<!-- arch:custom |  -->", "custom", true},
+		{"<!-- arch:custom | heading --> inside | hint -->", "custom", true},
+		{"<!-- arch: -->", "", false},
+		{"<!-- arch: | heading | hint -->", "", false},
+		{"<!-- arch:bad-->id | heading | hint -->", "", false},
+		{" <!-- arch:custom -->", "", false},
+		{"<!-- arch:custom --> ", "", false},
+	} {
+		id, ok := markerID(tc.line)
+		if ok != tc.valid || ok && id != tc.id {
+			t.Errorf("markerID(%q) = %q, %v", tc.line, id, ok)
+		}
+	}
+}
+
+func TestEmptySectionsAndTranslatedHeadings(t *testing.T) {
+	for _, legacy := range []bool{false, true} {
+		var b strings.Builder
+		for i, def := range knownSections {
+			marker := def.marker()
+			if legacy {
+				marker = "<!-- arch:" + def.id + " -->"
+			}
+			b.WriteString(marker + "\n\n")
+			if i%2 == 0 {
+				b.WriteString("## 翻訳した見出し\n本文\n")
+			}
+		}
+		dir := baseProject(t)
+		write(t, filepath.Join(dir, "ARCHITECTURE.md"), b.String())
+		out := requireSuccess(t, "check", "--dir", dir)
+		want := "summary: 0 ERROR, 0 WARN, 0 INFO"
+		if legacy {
+			want = "summary: 0 ERROR, 1 WARN, 0 INFO"
+		}
+		if !strings.Contains(out, want) {
+			t.Fatal(out)
+		}
+	}
+	for _, text := range []string{
+		"<!-- arch:custom -->\n\n本文\n",
+		"<!-- arch:custom | Heading | Hint. -->\n\n本文\n",
+	} {
+		if got := parseDocument(text).unknownHeadings; len(got) != 1 || got[0] != 3 {
+			t.Fatalf("最初の非空行の警告がない: %v", got)
+		}
 	}
 }

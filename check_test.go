@@ -73,10 +73,15 @@ func TestCheckOutdatedTemplate(t *testing.T) {
 				write(t, path, tc.content)
 			}
 			want := fixture(t, "check-minimal.golden")
+			if tc.name != "missing" {
+				warning := "WARN [legacy-template] ARCHITECTURE.md.template is no longer used since v0.2.0. Delete it manually.\n"
+				want = strings.Replace(want, "lines:", warning+"lines:", 1)
+				want = strings.Replace(want, "9 WARN", "10 WARN", 1)
+			}
 			if tc.outdated {
 				info := fmt.Sprintf("INFO [outdated-template] ARCHITECTURE.md.template is v0.0.9; this archmd is v%s\n", version)
 				want = strings.Replace(want, "lines:", info+"lines:", 1)
-				want = strings.Replace(want, "8 INFO", "9 INFO", 1)
+				want = strings.Replace(want, "0 INFO", "1 INFO", 1)
 			}
 			if got := requireSuccess(t, "check", "--dir", dir); got != want {
 				t.Fatalf("check:\n%s\nwant:\n%s", got, want)
@@ -87,7 +92,7 @@ func TestCheckOutdatedTemplate(t *testing.T) {
 
 func TestCheckOutdatedBlock(t *testing.T) {
 	for _, name := range []string{"AGENTS.md", "CLAUDE.md"} {
-		for _, stored := range []string{"0.0.9", version, "1.0.0", "", "0.x.0", "0.0", "0.0.0.0", "0.0.999999999999999999999999999999"} {
+		for _, stored := range []string{"0.0.9", "0.1.0", version, "1.0.0", "", "0.x.0", "0.0", "0.0.0.0", "0.0.999999999999999999999999999999"} {
 			t.Run(name+"/"+stored, func(t *testing.T) {
 				dir := baseProject(t)
 				if name == "CLAUDE.md" {
@@ -101,10 +106,10 @@ func TestCheckOutdatedBlock(t *testing.T) {
 				}
 				write(t, filepath.Join(dir, name), content)
 				want := fixture(t, "check-minimal.golden")
-				if stored == "0.0.9" {
+				if stored == "0.0.9" || stored == "0.1.0" {
 					info := fmt.Sprintf("INFO [outdated-block] archmd block in %s is v%s; this archmd is v%s\n", name, stored, version)
 					want = strings.Replace(want, "lines:", info+"lines:", 1)
-					want = strings.Replace(want, "8 INFO", "9 INFO", 1)
+					want = strings.Replace(want, "0 INFO", "1 INFO", 1)
 				}
 				if got := requireSuccess(t, "check", "--dir", dir); got != want {
 					t.Fatalf("check:\n%s\nwant:\n%s", got, want)
@@ -150,5 +155,58 @@ func TestPromptOutdatedDiagnostics(t *testing.T) {
 	info := fmt.Sprintf("INFO [outdated-template] ARCHITECTURE.md.template is v0.0.9; this archmd is v%s\nINFO [outdated-block] archmd block in AGENTS.md is v0.0.9; this archmd is v%s\n", version, version)
 	if got, want := requireSuccess(t, "prompt", "--dir", dir), strings.Replace(before, "lines:", info+"lines:", 1); got != want {
 		t.Fatalf("prompt:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestCheckMarkerLineLimits(t *testing.T) {
+	for _, legacy := range []bool{false, true} {
+		var b strings.Builder
+		b.WriteString("# Architecture\n")
+		for _, def := range knownSections {
+			marker := def.marker()
+			if legacy {
+				marker = "<!-- arch:" + def.id + " -->"
+			}
+			b.WriteString(marker + "\n## 見出し\n本文\n")
+		}
+		dir := baseProject(t)
+		write(t, filepath.Join(dir, "ARCHITECTURE.md"), b.String())
+		const bodyLines = 25
+		for _, limit := range []int{bodyLines, bodyLines - 1} {
+			code, out, _ := invoke("check", "--dir", dir, "--max-lines", fmt.Sprint(limit), "--max-section-lines", "2")
+			if (code == 1) != (limit < bodyLines) || !strings.Contains(out, "lines: 25\n") || strings.Count(out, "WARN [") != strings.Count(out, "WARN [legacy-format]") || (strings.Count(out, "WARN [legacy-format]") == 1) != legacy {
+				t.Fatalf("マーカーを含む行数制限が不正: %d %s", code, out)
+			}
+		}
+		out := requireSuccess(t, "check", "--dir", dir, "--max-section-lines", "1")
+		if strings.Count(out, "WARN [section-lines]") != 12 || !strings.Contains(out, "2 lines exceeds limit 1") {
+			t.Fatal(out)
+		}
+	}
+}
+
+func TestCheckLegacyFormat(t *testing.T) {
+	const warning = "WARN [legacy-format] ARCHITECTURE.md uses the pre-0.2.0 format. Regenerate it: archmd remove --yes && archmd init --write-agents && archmd prompt | <agent>\n"
+	for _, oldMarkers := range []int{0, 1, len(knownSections)} {
+		text := architectureSkeleton()
+		for _, def := range knownSections[:oldMarkers] {
+			text = strings.Replace(text, def.marker(), "<!-- arch:"+def.id+" -->", 1)
+		}
+		dir := baseProject(t)
+		write(t, filepath.Join(dir, "ARCHITECTURE.md"), text)
+		out := requireSuccess(t, "check", "--dir", dir)
+		wantCount := 0
+		if oldMarkers > 0 {
+			wantCount = 1
+		}
+		if strings.Count(out, warning) != wantCount || strings.Count(out, "WARN [") != wantCount {
+			t.Fatalf("旧形式警告の件数が不正: %s", out)
+		}
+	}
+	// コードフェンス内の例や解析できないマーカーは旧形式検出の対象外。
+	dir := baseProject(t)
+	write(t, filepath.Join(dir, "ARCHITECTURE.md"), architectureSkeleton()+"```md\n<!-- arch:example -->\n```\n<!-- arch: -->\n")
+	if out := requireSuccess(t, "check", "--dir", dir); strings.Contains(out, "[legacy-format]") {
+		t.Fatal(out)
 	}
 }

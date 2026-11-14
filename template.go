@@ -27,12 +27,10 @@ func architectureSkeleton() string {
 	d := parseDocument(strings.Replace(architectureTemplate, "archmd template v"+version+" | ", "", 1))
 	var b strings.Builder
 	b.WriteString(strings.Join(d.lines[:d.sections[0].start], "\n") + "\n")
-	for _, s := range d.sections {
-		for _, def := range knownSections {
-			if def.id == s.id && def.required {
-				b.WriteString(strings.Join(d.lines[s.start:s.end], "\n") + "\n")
-				break
-			}
+	for _, def := range knownSections {
+		b.WriteString(def.marker() + "\n")
+		if def.required {
+			b.WriteString("## " + def.heading + "\n")
 		}
 	}
 	return b.String()

@@ -9,50 +9,38 @@ SPDX-License-Identifier: Apache-2.0
 -->
 # Architecture Overview
 
-<!-- arch:project-structure -->
+<!-- arch:project-structure | Project layout | Map the main directories to their responsibilities. -->
 ## Project layout
-<!-- hint: Map the main directories to their responsibilities. -->
 
-<!-- arch:high-level-diagram -->
+<!-- arch:high-level-diagram | System map | Show the system overview and connections between major components. -->
 ## System map
-<!-- hint: システムの全体像と主要コンポーネントのつながりを示し、細かな内部構造は省く。 -->
 
-<!-- arch:core-components -->
+<!-- arch:core-components | Components | Describe each central module and the responsibility it owns. -->
 ## Components
-<!-- hint: Describe each central module and the responsibility it owns. -->
 
-<!-- arch:data-stores -->
+<!-- arch:data-stores | Data stores | Name persistent stores and their tables or collections without detailed schemas. -->
 ## Data stores
-<!-- hint: Name persistent stores and their tables or collections without detailed schemas. -->
 
-<!-- arch:external-integrations -->
+<!-- arch:external-integrations | External services | Identify outside services and the reason each connection exists. -->
 ## External services
-<!-- hint: Identify outside services and the reason each connection exists. -->
 
-<!-- arch:deployment-infrastructure -->
+<!-- arch:deployment-infrastructure | Build and deploy | Outline where the system runs and how changes reach it. -->
 ## Build and deploy
-<!-- hint: Outline where the system runs and how changes reach it. -->
 
-<!-- arch:decisions -->
+<!-- arch:decisions | Key decisions | Summarize each decision and its reason in one line. -->
 ## Key decisions
-<!-- hint: 各判断について、決定内容とその理由を1行にまとめる。 -->
 
-<!-- arch:security-considerations -->
+<!-- arch:security-considerations | Security | Summarize access boundaries and protections for sensitive information. -->
 ## Security
-<!-- hint: Summarize access boundaries and protections for sensitive information. -->
 
-<!-- arch:dev-testing-environment -->
+<!-- arch:dev-testing-environment | Development and testing | Name essential development tools and checks and link to setup instructions. -->
 ## Development and testing
-<!-- hint: Name essential development tools and checks and link to setup instructions. -->
 
-<!-- arch:future-considerations -->
+<!-- arch:future-considerations | Roadmap and known debt | Record likely architectural changes and unresolved design constraints. -->
 ## Roadmap and known debt
-<!-- hint: Record likely architectural changes and unresolved design constraints. -->
 
-<!-- arch:project-identification -->
+<!-- arch:project-identification | About this project | Identify this project, its repository and maintainers, and its last reviewed date (YYYY-MM-DD). -->
 ## About this project
-<!-- hint: Identify this project, its repository and maintainers, and its last reviewed date (YYYY-MM-DD). -->
 
-<!-- arch:glossary -->
+<!-- arch:glossary | Glossary | Define local terminology that a new contributor needs to understand. -->
 ## Glossary
-<!-- hint: Define local terminology that a new contributor needs to understand. -->

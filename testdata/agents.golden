@@ -1,4 +1,4 @@
-<!-- archmd:start v0.1.0 -->
+<!-- archmd:start v0.2.0 -->
 <!-- Section layout inspired by https://architecture.md/ -->
 <!--
 出典: ARCHITECTURE.md Template by timajwilliams (https://github.com/timajwilliams/architecture)。
@@ -10,8 +10,9 @@ SPDX-License-Identifier: Apache-2.0
 -->
 - Read ARCHITECTURE.md first before working; it summarizes this repository's architecture.
 - When your change affects the project structure, components, data stores, external integrations, or deployment, update ARCHITECTURE.md in the same task.
-- Update only the affected sections; do not rewrite the whole file. Keep the ID markers (`<!-- arch:... -->`) of retained sections unchanged.
-- Remove sections that do not currently apply. Before adding a section, copy its heading and ID exactly from ARCHITECTURE.md.template.
+- Update only the affected sections; do not rewrite the whole file.
+- Never delete or edit the `<!-- arch:... -->` marker lines. They list every section this document can have, in order.
+- If a section has nothing to document, remove its heading and body but keep its marker line. To fill an empty section, write an H2 heading directly under its marker, using the heading text in the marker.
 - Be concise. For data stores, list table or collection names only. Put long setup instructions in CONTRIBUTING.md, and remove hint comments once filled in.
 - Only document what the repository evidences. Do not invent systems, services, data stores, or integrations; when something is unclear, write "Not confirmed from the repository."
 - Before finishing, verify that every component, service, data store, and integration you named actually exists in the repository, and that each major source directory is covered.

@@ -24,6 +24,25 @@ var knownSections = []sectionDefinition{
 	{"glossary", "Glossary", false},
 }
 
+var sectionHints = map[string]string{
+	"project-structure":         "Map the main directories to their responsibilities.",
+	"high-level-diagram":        "Show the system overview and connections between major components.",
+	"core-components":           "Describe each central module and the responsibility it owns.",
+	"data-stores":               "Name persistent stores and their tables or collections without detailed schemas.",
+	"external-integrations":     "Identify outside services and the reason each connection exists.",
+	"deployment-infrastructure": "Outline where the system runs and how changes reach it.",
+	"decisions":                 "Summarize each decision and its reason in one line.",
+	"security-considerations":   "Summarize access boundaries and protections for sensitive information.",
+	"dev-testing-environment":   "Name essential development tools and checks and link to setup instructions.",
+	"future-considerations":     "Record likely architectural changes and unresolved design constraints.",
+	"project-identification":    "Identify this project, its repository and maintainers, and its last reviewed date (YYYY-MM-DD).",
+	"glossary":                  "Define local terminology that a new contributor needs to understand.",
+}
+
+func (def sectionDefinition) marker() string {
+	return "<!-- arch:" + def.id + " | " + def.heading + " | " + sectionHints[def.id] + " -->"
+}
+
 type section struct {
 	id         string
 	start, end int
@@ -49,7 +68,8 @@ func markerID(line string) (string, bool) {
 	if !strings.HasPrefix(line, prefix) || !strings.HasSuffix(line, suffix) {
 		return "", false
 	}
-	id := strings.TrimSuffix(strings.TrimPrefix(line, prefix), suffix)
+	content := strings.TrimSuffix(strings.TrimPrefix(line, prefix), suffix)
+	id, _, _ := strings.Cut(content, " | ")
 	return id, id != "" && !strings.Contains(id, "-->")
 }
 func isH2(line string) bool {
@@ -84,15 +104,31 @@ func parseDocument(s string) document {
 				d.sections[len(d.sections)-1].end = i
 			}
 			d.sections = append(d.sections, section{id, i, len(d.lines)})
-			if i+1 == len(d.lines) || !isH2(d.lines[i+1]) {
-				d.unknownHeadings = append(d.unknownHeadings, i+1)
-			}
 		} else if isH2(line) {
 			if i == 0 {
 				d.unknownHeadings = append(d.unknownHeadings, i+1)
-			} else if _, ok := markerID(d.lines[i-1]); !ok {
+			} else {
+				previous := i - 1
+				for previous >= 0 && strings.TrimSpace(d.lines[previous]) == "" {
+					previous--
+				}
+				if previous < 0 {
+					d.unknownHeadings = append(d.unknownHeadings, i+1)
+				} else if _, ok := markerID(d.lines[previous]); !ok {
+					d.unknownHeadings = append(d.unknownHeadings, i+1)
+				}
+			}
+		}
+	}
+	for _, section := range d.sections {
+		for i := section.start + 1; i < section.end; i++ {
+			if strings.TrimSpace(d.lines[i]) == "" {
+				continue
+			}
+			if !isH2(d.lines[i]) {
 				d.unknownHeadings = append(d.unknownHeadings, i+1)
 			}
+			break
 		}
 	}
 	return d
