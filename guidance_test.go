@@ -10,6 +10,7 @@ import (
 )
 
 func TestInitGuidancePreservesStdoutGolden(t *testing.T) {
+	setTestVersion(t, "0.3.1")
 	for _, common := range []bool{false, true} {
 		for _, existingArch := range []bool{false, true} {
 			for _, instructions := range []string{"none", "AGENTS.md", "CLAUDE.md", "existing-block"} {
@@ -181,6 +182,7 @@ func TestInitSkeletonAndLocalTemplate(t *testing.T) {
 }
 
 func TestInitPreservesExistingLocalTemplate(t *testing.T) {
+	setTestVersion(t, "0.3.1")
 	config(t)
 	dir := baseProject(t)
 	path := filepath.Join(dir, "ARCHITECTURE.md.template")

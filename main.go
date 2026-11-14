@@ -5,9 +5,23 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/debug"
+	"strings"
 )
 
-const version = "0.2.0"
+var version = resolveVersion()
+
+func resolveVersion() string {
+	return versionFromBuildInfo(debug.ReadBuildInfo())
+}
+
+func versionFromBuildInfo(info *debug.BuildInfo, ok bool) string {
+	if ok && info != nil && strings.HasPrefix(info.Main.Version, "v") {
+		return strings.TrimPrefix(info.Main.Version, "v")
+	}
+	return "dev"
+}
+
 const usage = "usage: archmd [--dir path] <init|prompt|remove|check|build|split|template|notices|version|help> [options]\n"
 const agentExamples = "  archmd prompt | <agent> && archmd check\n" +
 	"  archmd prompt | claude -p && archmd check\n" +
@@ -116,7 +130,7 @@ func run(args []string, out, errOut io.Writer) int {
 	case "split":
 		err = splitProject(*dir)
 	case "template":
-		_, err = io.WriteString(out, architectureTemplate)
+		_, err = io.WriteString(out, architectureTemplate())
 	case "notices":
 		_, err = io.WriteString(out, thirdPartyNotices)
 	case "version":

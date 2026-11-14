@@ -7,6 +7,7 @@ import (
 )
 
 func TestTemplateVersionAndSkeletonHeader(t *testing.T) {
+	setTestVersion(t, "0.3.1")
 	config(t)
 	dir := t.TempDir()
 	requireSuccess(t, "init", "--dir", dir)

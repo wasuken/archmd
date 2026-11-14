@@ -7,9 +7,41 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"testing"
 )
+
+// 版の差し替えはテスト終了時に元へ戻す。並列テストでは使用しない。
+func setTestVersion(t *testing.T, value string) {
+	t.Helper()
+	original := version
+	version = value
+	t.Cleanup(func() { version = original })
+}
+
+func TestVersionFromBuildInfo(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		info *debug.BuildInfo
+		ok   bool
+		want string
+	}{
+		{"tag", &debug.BuildInfo{Main: debug.Module{Version: "v0.3.1"}}, true, "0.3.1"},
+		{"pseudo", &debug.BuildInfo{Main: debug.Module{Version: "v0.3.2-0.20261114000000-abcdef123456"}}, true, "0.3.2-0.20261114000000-abcdef123456"},
+		{"devel", &debug.BuildInfo{Main: debug.Module{Version: "(devel)"}}, true, "dev"},
+		{"empty", &debug.BuildInfo{}, true, "dev"},
+		{"no-prefix", &debug.BuildInfo{Main: debug.Module{Version: "0.3.1"}}, true, "dev"},
+		{"failed", &debug.BuildInfo{Main: debug.Module{Version: "v0.3.1"}}, false, "dev"},
+		{"nil", nil, false, "dev"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := versionFromBuildInfo(tc.info, tc.ok); got != tc.want {
+				t.Fatalf("versionFromBuildInfo() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
 
 func invoke(args ...string) (int, string, string) {
 	var out, errOut bytes.Buffer
@@ -68,6 +100,7 @@ func baseProject(t *testing.T) string {
 }
 
 func TestInitAndIdempotence(t *testing.T) {
+	setTestVersion(t, "0.3.1")
 	config(t)
 	dir := t.TempDir()
 	requireSuccess(t, "init", "--dir", dir)
@@ -96,6 +129,7 @@ func TestInitAndIdempotence(t *testing.T) {
 }
 
 func TestInitExistingInstructionsAndCommon(t *testing.T) {
+	setTestVersion(t, "0.3.1")
 	for _, name := range []string{"AGENTS.md", "CLAUDE.md"} {
 		for _, withCommon := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%s/common=%v", name, withCommon), func(t *testing.T) {
@@ -358,13 +392,14 @@ func TestAgentReferencePrecedence(t *testing.T) {
 }
 
 func TestCLIArgumentsAndOutputs(t *testing.T) {
+	setTestVersion(t, "0.3.1")
 	for _, args := range [][]string{nil, {"unknown"}, {"check", "--bogus"}, {"check", "--max-lines", "0"}, {"init", "--max-lines", "-1"}, {"check", "--max-section-lines", "0"}, {"check", "--max-lines", "oops"}, {"template", "extra"}} {
 		code, _, _ := invoke(args...)
 		if code != 2 {
 			t.Errorf("%v: got %d", args, code)
 		}
 	}
-	for _, tc := range []struct{ cmd, expected string }{{"template", architectureTemplate}, {"notices", thirdPartyNotices}, {"version", version + "\n"}} {
+	for _, tc := range []struct{ cmd, expected string }{{"template", architectureTemplate()}, {"notices", thirdPartyNotices}, {"version", version + "\n"}} {
 		if got := requireSuccess(t, tc.cmd, "--dir", t.TempDir()); got != tc.expected {
 			t.Errorf("%s differs", tc.cmd)
 		}

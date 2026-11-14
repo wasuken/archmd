@@ -50,6 +50,7 @@ func snapshotPromptFiles(t *testing.T, root string) map[string]promptFileState {
 }
 
 func TestPromptModesDeterminismAndReadOnly(t *testing.T) {
+	setTestVersion(t, "0.3.1")
 	for _, mode := range []string{"direct", "split", "missing", "incomplete", "drift"} {
 		for _, common := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%s/common=%v", mode, common), func(t *testing.T) {
@@ -144,6 +145,7 @@ func TestPromptModesDeterminismAndReadOnly(t *testing.T) {
 }
 
 func TestPromptMaxLines(t *testing.T) {
+	setTestVersion(t, "0.3.1")
 	config(t)
 	dir := baseProject(t)
 	path := filepath.Join(dir, "ARCHITECTURE.md")
@@ -199,6 +201,7 @@ func TestPromptArgumentsAndCommonError(t *testing.T) {
 }
 
 func TestPromptOmitsLegacyWarnings(t *testing.T) {
+	setTestVersion(t, "0.3.1")
 	config(t)
 	dir := baseProject(t)
 	write(t, filepath.Join(dir, "ARCHITECTURE.md.template"), "<!-- archmd template v0.1.0 -->\n")

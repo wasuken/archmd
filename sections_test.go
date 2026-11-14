@@ -17,10 +17,11 @@ func TestPhysicalLineCounts(t *testing.T) {
 	}
 }
 func TestTemplateStructure(t *testing.T) {
-	if !strings.HasPrefix(architectureTemplate, "<!-- archmd template v"+version+" | Section layout inspired by https://architecture.md/ -->\n<!--") {
+	setTestVersion(t, "0.3.1")
+	if !strings.HasPrefix(architectureTemplate(), "<!-- archmd template v"+version+" | Section layout inspired by https://architecture.md/ -->\n<!--") {
 		t.Fatal("template preamble")
 	}
-	d := parseDocument(architectureTemplate)
+	d := parseDocument(architectureTemplate())
 	if len(d.sections) != len(knownSections) || len(d.unknownHeadings) > 0 {
 		t.Fatal("template sections")
 	}
@@ -50,7 +51,7 @@ func TestSectionDefinitionsAndRequiredMissing(t *testing.T) {
 	if len(knownSections) != len(expected) {
 		t.Fatalf("section count: %d", len(knownSections))
 	}
-	d := parseDocument(architectureTemplate)
+	d := parseDocument(architectureTemplate())
 	for i, def := range expected {
 		if knownSections[i] != def {
 			t.Errorf("section %d: %+v, want %+v", i, knownSections[i], def)
@@ -99,7 +100,7 @@ func TestAttribution(t *testing.T) {
 			}
 		})
 	}
-	for _, content := range []string{architectureTemplate, architectureSkeleton(), agentsTemplate} {
+	for _, content := range []string{architectureTemplate(), architectureSkeleton(), agentsTemplate} {
 		for _, required := range []string{"timajwilliams", "SPDX-License-Identifier: Apache-2.0", "archmd により", "https://www.apache.org/licenses/LICENSE-2.0.txt"} {
 			if !strings.Contains(content, required) {
 				t.Errorf("出典・変更・ライセンス表示がない: %s", required)

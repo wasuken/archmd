@@ -58,8 +58,11 @@ archmd prompt | <agent>
 
 ARCHITECTURE.md.template も `remove --yes` で削除されます。init はこのファイルに触りません。prompt は作り直しの手順を追加せず、check 結果から legacy-format と legacy-template の警告を除外します。欠落した節の `WARN [missing-marker]` と版の古いテンプレートの `INFO [outdated-template]` は従来どおり出力します。v0.x の間は破壊的変更を許容します。
 
+版は git タグが正。リリースは `git tag vX.Y.Z && git push origin vX.Y.Z` だけです。Go のビルド情報の版から先頭の `v` を除いて表示・刻印し、開発ビルドは `dev` とします。outdated の比較には両方の版の先頭の `X.Y.Z` を数値で使い、どちらかが取得できなければ通知しません。
+
 ## Template changes
 
+- 0.3.x（0.3.1）: `remove` が旧 `ARCHITECTURE.md.template` も削除。`split` / `build` が改行・空行・末尾改行を含む元のバイト列を保持。版は git タグ由来のビルド情報から取得し、擬似版も先頭の数値で比較する。
 - 0.2.0: マーカーに見出しとヒントを入れ、全12節のマーカーを ARCHITECTURE.md 内に常駐させる。.template は新規作成しない。unused-section を missing-marker に置き換え、マーカー行は行数に数えない。旧形式からの移行は作り直し（上記3コマンド）。.template も remove で削除。消す前に、コードから再生成できない記述（Key decisions など）は退避すること。
 - 0.1.0: テンプレート先頭に版を刻印。古いテンプレート・ブロックを `check` の INFO で通知。
 

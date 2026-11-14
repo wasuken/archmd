@@ -14,6 +14,12 @@ func TestIsOlderVersion(t *testing.T) {
 		want            bool
 	}{
 		{"0.0.9", "0.1.0", true},
+		{"0.2.0", "0.3.1", true},
+		{"0.3.2-0.20261114000000-abcdef123456", "0.3.1", false},
+		{"0.3.2-0.20261114000000-abcdef123456", "0.3.3", true},
+		{"0.3.1", "0.3.2-0.20261114000000-abcdef123456", true},
+		{"0.2.0", "dev", false},
+		{"dev", "0.3.1", false},
 		{"0.1.0", "0.1.0", false},
 		{"0.1.1", "0.1.0", false},
 		{"0.9.0", "0.10.0", true},
@@ -25,7 +31,8 @@ func TestIsOlderVersion(t *testing.T) {
 		{"0.01.0", "0.1.0", false},
 		{"", "0.1.0", false},
 		{"0.0", "0.1.0", false},
-		{"0.0.0.0", "0.1.0", false},
+		{"0.0.0.0", "0.1.0", true},
+		{"0.0.0oops", "0.1.0", true},
 		{"-1.0.0", "0.1.0", false},
 		{"v0.0.0", "0.1.0", false},
 		{"0.x.0", "0.1.0", false},
@@ -42,6 +49,7 @@ func TestIsOlderVersion(t *testing.T) {
 }
 
 func TestCheckOutdatedTemplate(t *testing.T) {
+	setTestVersion(t, "0.3.1")
 	for _, tc := range []struct {
 		name, content string
 		outdated      bool
@@ -54,8 +62,6 @@ func TestCheckOutdatedTemplate(t *testing.T) {
 		{"newer", "<!-- archmd template v1.0.0 | Section layout inspired by https://architecture.md/ -->\n", false},
 		{"invalid", "<!-- archmd template v0.x.0 -->\n", false},
 		{"incomplete", "<!-- archmd template v0.0 -->\n", false},
-		{"extra-component", "<!-- archmd template v0.0.0.0 -->\n", false},
-		{"suffix", "<!-- archmd template v0.0.0oops -->\n", false},
 		{"overflow", "<!-- archmd template v0.0.999999999999999999999999999999 -->\n", false},
 		{"second-line", "\n<!-- archmd template v0.0.9 -->\n", false},
 		{"crlf", "<!-- archmd template v0.0.9 | Section layout inspired by https://architecture.md/ -->\r\n", true},
@@ -91,8 +97,9 @@ func TestCheckOutdatedTemplate(t *testing.T) {
 }
 
 func TestCheckOutdatedBlock(t *testing.T) {
+	setTestVersion(t, "0.3.1")
 	for _, name := range []string{"AGENTS.md", "CLAUDE.md"} {
-		for _, stored := range []string{"0.0.9", "0.1.0", version, "1.0.0", "", "0.x.0", "0.0", "0.0.0.0", "0.0.999999999999999999999999999999"} {
+		for _, stored := range []string{"0.0.9", "0.1.0", version, "1.0.0", "", "0.x.0", "0.0", "0.0.999999999999999999999999999999"} {
 			t.Run(name+"/"+stored, func(t *testing.T) {
 				dir := baseProject(t)
 				if name == "CLAUDE.md" {
@@ -120,6 +127,7 @@ func TestCheckOutdatedBlock(t *testing.T) {
 }
 
 func TestCheckOutdatedBlockPrecedence(t *testing.T) {
+	setTestVersion(t, "0.3.1")
 	dir := baseProject(t)
 	write(t, filepath.Join(dir, "CLAUDE.md"), "ARCHITECTURE.md\n<!-- archmd:start v0.0.1 -->\n")
 	for _, marker := range []string{"", "<!-- archmd:start v" + version + " -->\n", "<!-- archmd:start v0.0.9 -->\n"} {
@@ -140,6 +148,7 @@ func TestCheckOutdatedBlockPrecedence(t *testing.T) {
 }
 
 func TestPromptOutdatedDiagnostics(t *testing.T) {
+	setTestVersion(t, "0.3.1")
 	config(t)
 	dir := baseProject(t)
 	before := requireSuccess(t, "prompt", "--dir", dir)
@@ -208,5 +217,36 @@ func TestCheckLegacyFormat(t *testing.T) {
 	write(t, filepath.Join(dir, "ARCHITECTURE.md"), architectureSkeleton()+"```md\n<!-- arch:example -->\n```\n<!-- arch: -->\n")
 	if out := requireSuccess(t, "check", "--dir", dir); strings.Contains(out, "[legacy-format]") {
 		t.Fatal(out)
+	}
+}
+
+func TestVersionStampsAndOutdatedDiagnostics(t *testing.T) {
+	config(t)
+	for _, current := range []string{"0.3.1", "dev", "0.3.3-0.20261114000000-abcdef123456"} {
+		t.Run(current, func(t *testing.T) {
+			setTestVersion(t, current)
+			dir := t.TempDir()
+			requireSuccess(t, "init", "--dir", dir)
+			if got := requireSuccess(t, "version"); got != current+"\n" {
+				t.Fatal(got)
+			}
+			if got := requireSuccess(t, "template"); !strings.HasPrefix(got, "<!-- archmd template v"+current+" | ") {
+				t.Fatal(got)
+			}
+			if got := read(t, filepath.Join(dir, "AGENTS.md")); !strings.HasPrefix(got, "<!-- archmd:start v"+current+" -->\n") {
+				t.Fatal(got)
+			}
+			for _, stored := range []string{"0.2.0", "0.3.2-0.20261114000000-abcdef123456", "dev"} {
+				write(t, filepath.Join(dir, "ARCHITECTURE.md.template"), "<!-- archmd template v"+stored+" | Section layout inspired by https://architecture.md/ -->\n")
+				write(t, filepath.Join(dir, "AGENTS.md"), "ARCHITECTURE.md\n<!-- archmd:start v"+stored+" -->\n<!-- archmd:end -->\n")
+				out := requireSuccess(t, "check", "--dir", dir)
+				want := stored != "dev" && (current == "0.3.1" && stored == "0.2.0" || strings.HasPrefix(current, "0.3.3"))
+				for _, code := range []string{"outdated-template", "outdated-block"} {
+					if strings.Contains(out, "["+code+"]") != want {
+						t.Fatalf("current=%s stored=%s: %s", current, stored, out)
+					}
+				}
+			}
+		})
 	}
 }

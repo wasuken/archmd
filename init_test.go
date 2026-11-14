@@ -9,6 +9,7 @@ import (
 )
 
 func TestInitWriteAgentsAppendAndRemove(t *testing.T) {
+	setTestVersion(t, "0.3.1")
 	for _, tc := range []struct {
 		name, original, separator string
 	}{
@@ -59,6 +60,7 @@ func TestInitWriteAgentsAppendAndRemove(t *testing.T) {
 }
 
 func TestInitWriteAgentsSelection(t *testing.T) {
+	setTestVersion(t, "0.3.1")
 	for _, names := range [][]string{{"CLAUDE.md"}, {"AGENTS.md", "CLAUDE.md"}} {
 		t.Run(strings.Join(names, "+"), func(t *testing.T) {
 			config(t)

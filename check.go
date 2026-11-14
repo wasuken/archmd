@@ -11,9 +11,9 @@ import (
 	"strings"
 )
 
-var templateVersionPattern = regexp.MustCompile(`archmd template v(\d+\.\d+\.\d+)(?:[ \t|]|$)`)
-var blockVersionPattern = regexp.MustCompile(`<!-- archmd:start v(\d+\.\d+\.\d+) -->`)
-var versionPattern = regexp.MustCompile(`^(\d+)\.(\d+)\.(\d+)$`)
+var templateVersionPattern = regexp.MustCompile(`archmd template v([^ \t|]+)(?:[ \t|]|$)`)
+var blockVersionPattern = regexp.MustCompile(`<!-- archmd:start v([^ \t\r\n]+) -->`)
+var versionPattern = regexp.MustCompile(`^(\d+)\.(\d+)\.(\d+)`)
 
 func parseVersion(value string) ([3]int, bool) {
 	var parts [3]int
