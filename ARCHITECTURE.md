@@ -1,11 +1,19 @@
 <!-- Section layout inspired by https://architecture.md/ -->
+<!--
+出典: ARCHITECTURE.md Template by timajwilliams (https://github.com/timajwilliams/architecture)。
+archmd により節・見出し・説明を再構成し、ID マーカーと更新ルールを追加。
+SPDX-License-Identifier: Apache-2.0
+ライセンス全文: https://www.apache.org/licenses/LICENSE-2.0.txt
+再配布時はこの表示を保持し、Apache-2.0 全文と archmd notices の出典表示を同梱する。
+この表示はテンプレート・ルールに適用され、記載対象プロジェクトのライセンスは指定しない。
+-->
 # Architecture Overview
 
 <!-- arch:project-structure -->
 ## Project layout
 
 - ルート直下: 単一の Go `main` パッケージ。CLI、文書の初期配置・検証・分割・結合・撤去、更新依頼文の生成を実装する。
-- `embed/`: `go:embed` でバイナリに含める文書テンプレート、エージェント向け運用ルール、出典表記。
+- `embed/`: `go:embed` でバイナリに含める文書テンプレートとエージェント向け運用ルール。ルートの `LICENSE`・`NOTICE` もバイナリへ埋め込み、`notices` で全文を出力する。
 - `*_test.go` と `testdata/`: コマンド・文書解析・ファイル操作のテストと、期待出力（golden）・入力文書。
 - `README.md`: コマンドの利用方法、設定、検証方法、仕様上の前提。
 - `AGENTS.md`: このリポジトリの文書更新ルール。`ARCHITECTURE.md.template` は全節の見本、`ARCHITECTURE.md` は現在の構成を記録する。
@@ -32,7 +40,7 @@ flowchart TD
 
 - `main.go`: 引数・対象ディレクトリ・行数制限を解析し、各コマンドへ振り分ける。ヘルプ、バージョン表示、終了コードもここで扱う。
 - `sections.go`: 既知の12節と必須4節を定義する。改行を正規化し、コードフェンスを除外して ID マーカーと H2 を解析する。節の追加・解析仕様の変更は検証・分割・骨組み生成に影響する。
-- `template.go` と `embed/`: 配布素材を埋め込み、テンプレートのプレースホルダーを `main.go` の版定数で置換する。骨組みは従来の出典コメントと必須節だけで生成する。配布する文書・ルールの変更箇所。
+- `template.go` と `embed/`: 配布素材を埋め込み、テンプレートのプレースホルダーを `main.go` の版定数で置換する。骨組みには出典・変更・ライセンス表示と必須節を含める。配布する文書・ルールの変更箇所。
 - `init.go`: 対象にテンプレートと骨組みを新規配置する。既存のエージェント設定がある場合は追記用ブロックを出力する。`--write-agents` 指定時は AGENTS.md（無ければ CLAUDE.md）のマーカーを検証し、既存バイト列を保持して追記する。
 - `agents.go`: `AGENTS.md` / `CLAUDE.md` の検出、運用ブロックの生成・除去、`os.UserConfigDir()/architecture-md/common.md` の共通ルール読み込み。`check` の参照確認は `AGENTS.md` を優先する。
 - `check.go`: 必須節、ID の重複、見出し、行数、エージェント設定からの参照を検証する。テンプレートと優先するエージェント設定のブロックが古い版なら INFO で通知する。`.architecture/` がある場合は生成結果とのバイト単位の一致も確認する。
@@ -47,4 +55,5 @@ flowchart TD
 - プロジェクト名: `archmd`（Go モジュール名も `archmd`）。アーキテクチャ文書とエージェント向け運用ルールの配置・維持・検証を補助する CLI。
 - 実装基盤: Go 1.22 以上、標準ライブラリのみ。実行時のネットワーク接続や外部サービスへの依存はない。
 - リポジトリの公開 URL・保守担当者: Not confirmed from the repository.
-- 最終確認日: 2026-11-12。
+- ライセンス: Apache-2.0。`LICENSE` が全文、`NOTICE` が元テンプレートの出典・参照コミット・変更表示。
+- 最終確認日: 2026-11-14。

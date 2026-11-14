@@ -17,7 +17,7 @@ func TestPhysicalLineCounts(t *testing.T) {
 	}
 }
 func TestTemplateStructure(t *testing.T) {
-	if !strings.HasPrefix(architectureTemplate, "<!-- archmd template v"+version+" | Section layout inspired by https://architecture.md/ -->\n# ") {
+	if !strings.HasPrefix(architectureTemplate, "<!-- archmd template v"+version+" | Section layout inspired by https://architecture.md/ -->\n<!--") {
 		t.Fatal("template preamble")
 	}
 	d := parseDocument(architectureTemplate)
@@ -75,7 +75,7 @@ func TestSectionDefinitionsAndRequiredMissing(t *testing.T) {
 func TestAttribution(t *testing.T) {
 	config(t)
 	const comment = "<!-- Section layout inspired by https://architecture.md/ -->"
-	const notice = "節構成の発想は https://architecture.md/ (https://github.com/timajwilliams/architecture) に着想を得ている。文言・ヒント・指示文は独自に書いたもの。\n"
+	notice := read(t, "NOTICE") + "\n" + read(t, "LICENSE")
 	if got := requireSuccess(t, "notices"); got != notice {
 		t.Fatalf("notices: %q", got)
 	}
@@ -95,10 +95,10 @@ func TestAttribution(t *testing.T) {
 			}
 		})
 	}
-	for _, content := range []string{architectureTemplate, agentsTemplate, thirdPartyNotices, read(t, "README.md"), read(t, "ARCHITECTURE.md")} {
-		for _, forbidden := range []string{"MIT", "Apache", "TODO"} {
-			if strings.Contains(content, forbidden) {
-				t.Errorf("出典に不要な文字列: %s", forbidden)
+	for _, content := range []string{architectureTemplate, architectureSkeleton(), agentsTemplate} {
+		for _, required := range []string{"timajwilliams", "SPDX-License-Identifier: Apache-2.0", "archmd により", "https://www.apache.org/licenses/LICENSE-2.0.txt"} {
+			if !strings.Contains(content, required) {
+				t.Errorf("出典・変更・ライセンス表示がない: %s", required)
 			}
 		}
 	}

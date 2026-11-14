@@ -1,0 +1,15 @@
+archmd
+本プロジェクトのコードと同梱テンプレートは Apache License, Version 2.0 で提供します。
+
+出典: ARCHITECTURE.md Template — timajwilliams
+https://architecture.md/
+https://github.com/timajwilliams/architecture
+参照コミット: fed7705ccb5b90980fae624fc30f21a1f45655ac
+元テンプレート: https://github.com/timajwilliams/architecture/blob/fed7705ccb5b90980fae624fc30f21a1f45655ac/architecture.md
+元ライセンス: https://github.com/timajwilliams/architecture/blob/fed7705ccb5b90980fae624fc30f21a1f45655ac/LICENSE
+
+元テンプレート由来の節構成を利用しています。archmd では見出しと説明文を再構成・簡略化し、
+節を追加し、ID マーカー、更新ルール、Go CLI を追加しています。
+元サイトと README の MIT 表記には不一致がありますが、本プロジェクトでは
+上記コミットの LICENSE 本文に従い Apache-2.0 として扱います。
+本ファイルは archmd が作成した出典・変更表示です。

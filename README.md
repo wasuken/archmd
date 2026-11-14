@@ -52,7 +52,24 @@ archmd prompt | codex exec - && archmd check
 
 - 0.1.0: テンプレート先頭に版を刻印。古いテンプレート・ブロックを `check` の INFO で通知。
 
-節構成の発想は https://architecture.md/ (https://github.com/timajwilliams/architecture) に着想を得ている。文言・ヒント・指示文は独自に書いたもの。
+## ライセンスと出典
+
+コードと同梱テンプレートは [Apache License, Version 2.0](LICENSE) で提供します。
+元テンプレートは [timajwilliams/architecture](https://github.com/timajwilliams/architecture) です。
+出典、参照コミット、変更内容は [NOTICE](NOTICE) に記録しています。
+元の Web・README には MIT 表記がありますが、本プロジェクトでは元リポジトリの LICENSE 本文に従い Apache-2.0 として扱います。
+
+ソースやバイナリの再配布には `LICENSE` と `NOTICE` を同梱してください。
+バイナリ単体からも `archmd notices` で出典・変更表示とライセンス全文を取得できます。
+生成したテンプレートや更新ルールを再配布するときも、先頭の表示を保持し、次のように全文を同梱してください。
+生成先の既存の `LICENSE` を置き換える必要はありません。
+
+```sh
+archmd notices > ARCHMD-NOTICES.txt
+```
+
+テンプレートに記載するプロジェクト自体のコードに、このライセンスを適用する指定ではありません。
+生成物を変更した場合は、該当ファイルに変更した旨を追記してください。
 
 ## tips
 

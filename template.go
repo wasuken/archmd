@@ -13,8 +13,14 @@ var architectureTemplate = strings.Replace(architectureTemplateSource, "{{VERSIO
 //go:embed embed/agents-block.md
 var agentsTemplate string
 
-//go:embed embed/THIRD_PARTY_NOTICES.md
-var thirdPartyNotices string
+//go:embed NOTICE
+var attributionNotices string
+
+//go:embed LICENSE
+var licenseText string
+
+// バイナリ単体でも出典とライセンス全文を取り出せるようにする。
+var thirdPartyNotices = attributionNotices + "\n" + licenseText
 
 func architectureSkeleton() string {
 	// 骨組みには従来の出典コメントを残す。

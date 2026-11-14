@@ -1,5 +1,13 @@
 <!-- archmd:start v0.1.0 -->
 <!-- Section layout inspired by https://architecture.md/ -->
+<!--
+出典: ARCHITECTURE.md Template by timajwilliams (https://github.com/timajwilliams/architecture)。
+archmd により節・見出し・説明を再構成し、ID マーカーと更新ルールを追加。
+SPDX-License-Identifier: Apache-2.0
+ライセンス全文: https://www.apache.org/licenses/LICENSE-2.0.txt
+再配布時はこの表示を保持し、Apache-2.0 全文と archmd notices の出典表示を同梱する。
+この表示はテンプレート・ルールに適用され、記載対象プロジェクトのライセンスは指定しない。
+-->
 - Read ARCHITECTURE.md first before working; it summarizes this repository's architecture.
 - When your change affects the project structure, components, data stores, external integrations, or deployment, update ARCHITECTURE.md in the same task.
 - Update only the affected sections; do not rewrite the whole file. Keep the ID markers (`<!-- arch:... -->`) of retained sections unchanged.
