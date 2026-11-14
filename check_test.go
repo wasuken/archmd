@@ -74,7 +74,7 @@ func TestCheckOutdatedTemplate(t *testing.T) {
 			}
 			want := fixture(t, "check-minimal.golden")
 			if tc.name != "missing" {
-				warning := "WARN [legacy-template] ARCHITECTURE.md.template is no longer used since v0.2.0. Delete it manually.\n"
+				warning := "WARN [legacy-template] ARCHITECTURE.md.template is no longer used since v0.2.0. Delete it manually or run: archmd remove --yes\n"
 				want = strings.Replace(want, "lines:", warning+"lines:", 1)
 				want = strings.Replace(want, "9 WARN", "10 WARN", 1)
 			}

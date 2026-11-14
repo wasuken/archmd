@@ -210,7 +210,7 @@ func TestPromptOmitsLegacyWarnings(t *testing.T) {
 	}
 	before := snapshotPromptFiles(t, dir)
 	prompt := requireSuccess(t, "prompt", "--dir", dir)
-	for _, unwanted := range []string{"legacy-format", "legacy-template", "archmd remove", "Delete it manually.", "Regenerate it:"} {
+	for _, unwanted := range []string{"legacy-format", "legacy-template", "archmd remove", "Delete it manually or run:", "Regenerate it:"} {
 		if strings.Contains(prompt, unwanted) {
 			t.Errorf("prompt に除外対象が含まれる: %s", unwanted)
 		}

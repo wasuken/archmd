@@ -120,7 +120,7 @@ func checkProject(dir string, maxLines, maxSectionLines int, out io.Writer) int 
 	}
 	templatePath := filepath.Join(dir, "ARCHITECTURE.md.template")
 	if _, err := os.Lstat(templatePath); err == nil {
-		report("WARN", "legacy-template", "ARCHITECTURE.md.template is no longer used since v0.2.0. Delete it manually.")
+		report("WARN", "legacy-template", "ARCHITECTURE.md.template is no longer used since v0.2.0. Delete it manually or run: archmd remove --yes")
 	}
 	if template, err := os.ReadFile(templatePath); err == nil {
 		firstLine, _, _ := strings.Cut(string(template), "\n")
