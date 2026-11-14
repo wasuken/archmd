@@ -16,7 +16,7 @@ SPDX-License-Identifier: Apache-2.0
 - `embed/`: `go:embed` でバイナリに含める文書テンプレートとエージェント向け運用ルール。ルートの `LICENSE`・`NOTICE` もバイナリへ埋め込み、`notices` で全文を出力する。
 - `*_test.go` と `testdata/`: コマンド・文書解析・ファイル操作のテストと、期待出力（golden）・入力文書。
 - `README.md`: コマンドの利用方法、設定、検証方法、仕様上の前提。
-- `AGENTS.md`: このリポジトリの文書更新ルール。`ARCHITECTURE.md` は全12節のマーカーと現在の構成を記録する。
+- `ARCHITECTURE.md`: 全12節のマーカーと現在の構成を記録する。このリポジトリには現在 `AGENTS.md` / `CLAUDE.md` はない。生成先のエージェント向け運用ルールは `embed/agents-block.md` で管理する。
 
 <!-- arch:high-level-diagram | System map | Show the system overview and connections between major components. -->
 ## System map
@@ -52,9 +52,21 @@ flowchart TD
 <!-- arch:data-stores | Data stores | Name persistent stores and their tables or collections without detailed schemas. -->
 <!-- arch:external-integrations | External services | Identify outside services and the reason each connection exists. -->
 <!-- arch:deployment-infrastructure | Build and deploy | Outline where the system runs and how changes reach it. -->
+## ビルドと配布
+
+- ローカルで動作する単一の CLI バイナリ。`go build -o archmd .` でビルドする。
+- リリース版は Git タグ `vX.Y.Z` を基準とし、Go のビルド情報から版を取得する。開発ビルドの表示は `dev`。
+- ソース・バイナリの再配布には `LICENSE` と `NOTICE` を同梱する。バイナリの `notices` コマンドからも表示できる。
+
 <!-- arch:decisions | Key decisions | Summarize each decision and its reason in one line. -->
 <!-- arch:security-considerations | Security | Summarize access boundaries and protections for sensitive information. -->
 <!-- arch:dev-testing-environment | Development and testing | Name essential development tools and checks and link to setup instructions. -->
+## 開発と検証
+
+- Go 1.24 以上を使用する。外部モジュールへの依存はない。
+- `go test ./...`、`go vet ./...`、`gofmt -l .` で検証する。テストは一時ディレクトリと `testdata/` の入力・期待出力を使う。
+- コマンド・共通ルール設定・文書運用の詳細は [README.md](README.md) を参照する。
+
 <!-- arch:future-considerations | Roadmap and known debt | Record likely architectural changes and unresolved design constraints. -->
 <!-- arch:project-identification | About this project | Identify this project, its repository and maintainers, and its last reviewed date (YYYY-MM-DD). -->
 ## About this project
