@@ -52,6 +52,14 @@ func removalPlan(dir string, keepArchitecture bool) ([]removalTarget, error) {
 			}
 		}
 	}
+	template := removalTarget{name: "ARCHITECTURE.md.template", result: "skipped(not found)"}
+	info, err = removalInfo(filepath.Join(dir, template.name), false)
+	if err != nil {
+		return nil, err
+	}
+	if info != nil {
+		template.action, template.result = "remove", "removed"
+	}
 	fragments := removalTarget{name: ".architecture", result: "skipped(not found)"}
 	info, err = removalInfo(filepath.Join(dir, fragments.name), true)
 	if err != nil {
@@ -89,7 +97,7 @@ func removalPlan(dir string, keepArchitecture bool) ([]removalTarget, error) {
 			}
 		}
 	}
-	return []removalTarget{architecture, fragments, instructions}, nil
+	return []removalTarget{architecture, template, fragments, instructions}, nil
 }
 
 func removeProject(dir string, yes, keepArchitecture bool, out io.Writer) error {

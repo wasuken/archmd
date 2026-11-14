@@ -38,7 +38,7 @@ archmd prompt | codex exec - && archmd check
 
 `prompt` は更新依頼、編集モード、init と共通のルール、現在の check 診断、終了条件を英語で標準出力へ出します。ファイルは作成・変更せず、外部コマンドも呼びません。出力を AI エージェントへの指示に利用できます。
 
-`remove` は削除対象と警告を表示する dry-run です。`--yes` を指定すると ARCHITECTURE.md、`.architecture/`、AGENTS.md（無ければ CLAUDE.md）の archmd ブロックを削除します。ブロック内の手書きの追記も削除されます。`--keep-architecture-md` で ARCHITECTURE.md を残せます（先頭の生成ヘッダは除去）。ユーザー設定ディレクトリの common.md には触りません。
+`remove` は削除対象と警告を表示する dry-run です。`--yes` を指定すると ARCHITECTURE.md、ARCHITECTURE.md.template、`.architecture/`、AGENTS.md（無ければ CLAUDE.md）の archmd ブロックを削除します。ブロック内の手書きの追記も削除されます。`--keep-architecture-md` で ARCHITECTURE.md を残せます（先頭の生成ヘッダは除去）。ユーザー設定ディレクトリの common.md には触りません。
 
 `.architecture/` がある場合はその中の Markdown を編集し、`archmd build` を実行してください。`check` は生成物とのバイト単位の一致も検証します。終了コードは正常時 0、チェックの ERROR またはファイル操作失敗時 1、引数の誤りで 2 です。
 
@@ -56,11 +56,11 @@ archmd init --write-agents
 archmd prompt | <agent>
 ```
 
-ARCHITECTURE.md.template は手で削除してください。init と remove はこのファイルに触りません。prompt は作り直しの手順を追加せず、check 結果から legacy-format と legacy-template の警告を除外します。欠落した節の `WARN [missing-marker]` と版の古いテンプレートの `INFO [outdated-template]` は従来どおり出力します。v0.x の間は破壊的変更を許容します。
+ARCHITECTURE.md.template も `remove --yes` で削除されます。init はこのファイルに触りません。prompt は作り直しの手順を追加せず、check 結果から legacy-format と legacy-template の警告を除外します。欠落した節の `WARN [missing-marker]` と版の古いテンプレートの `INFO [outdated-template]` は従来どおり出力します。v0.x の間は破壊的変更を許容します。
 
 ## Template changes
 
-- 0.2.0: マーカーに見出しとヒントを入れ、全12節のマーカーを ARCHITECTURE.md 内に常駐させる。.template は新規作成しない。unused-section を missing-marker に置き換え、マーカー行は行数に数えない。旧形式からの移行は作り直し（上記3コマンド）。.template は手で削除。消す前に、コードから再生成できない記述（Key decisions など）は退避すること。
+- 0.2.0: マーカーに見出しとヒントを入れ、全12節のマーカーを ARCHITECTURE.md 内に常駐させる。.template は新規作成しない。unused-section を missing-marker に置き換え、マーカー行は行数に数えない。旧形式からの移行は作り直し（上記3コマンド）。.template も remove で削除。消す前に、コードから再生成できない記述（Key decisions など）は退避すること。
 - 0.1.0: テンプレート先頭に版を刻印。古いテンプレート・ブロックを `check` の INFO で通知。
 
 ## ライセンスと出典
@@ -104,4 +104,4 @@ archmd notices > ARCHMD-NOTICES.txt
 - remove の --keep-architecture-md は生成ヘッダ以外のバイト列と改行を保持する。対象直下のシンボリックリンクと想定外のファイル種別は、対象外への書き込みを避けるため全対象の変更前にエラーとする。OS の削除・書き込み失敗時のロールバックは行わない。
 - init の Next 案内は ARCHITECTURE.md の新規作成を含む処理が正常終了した場合だけ出す。common.md のパス解決・存在確認で欠落以外のエラーがあれば、help と init は終了コード 1 で報告する。
 - init の標準出力は運用ブロックだけという従来の契約を維持し、本文の指定変更に限って golden を更新する（本文変更と変更前のバイト列維持は両立しない）。
-- remove の削除対象は従来どおりとし、ARCHITECTURE.md.template は保持する。
+- remove は ARCHITECTURE.md.template も削除する。--keep-architecture-md を指定した場合もテンプレートは削除する。

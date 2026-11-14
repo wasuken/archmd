@@ -16,7 +16,7 @@ SPDX-License-Identifier: Apache-2.0
 - `embed/`: `go:embed` でバイナリに含める文書テンプレートとエージェント向け運用ルール。ルートの `LICENSE`・`NOTICE` もバイナリへ埋め込み、`notices` で全文を出力する。
 - `*_test.go` と `testdata/`: コマンド・文書解析・ファイル操作のテストと、期待出力（golden）・入力文書。
 - `README.md`: コマンドの利用方法、設定、検証方法、仕様上の前提。
-- `AGENTS.md`: このリポジトリの文書更新ルール。`ARCHITECTURE.md` は全12節のマーカーと現在の構成を記録する。旧 `ARCHITECTURE.md.template` は互換確認用に残っている。
+- `AGENTS.md`: このリポジトリの文書更新ルール。`ARCHITECTURE.md` は全12節のマーカーと現在の構成を記録する。
 
 <!-- arch:high-level-diagram | System map | Show the system overview and connections between major components. -->
 ## System map
@@ -46,7 +46,7 @@ flowchart TD
 - `check.go`: 必須節、ID の重複、見出し、マーカーを除く行数、エージェント設定からの参照を検証する。任意節のマーカー欠落、旧マーカー形式、旧テンプレートの残存は WARN で通知する。テンプレートと優先するエージェント設定のブロックが古い版なら INFO で通知する。`.architecture/` がある場合は生成結果とのバイト単位の一致も確認する。
 - `split.go` / `build.go`: 文書を `.architecture/` のヘッダー・節ファイルへ分割し、直下の Markdown をファイル名順に結合して `ARCHITECTURE.md` を生成する。`00-header.md` がある分割形式では改行・空行・末尾改行を含めた元のバイト列を保持し、手動構成では生成ヘッダーと区切りを付ける。このリポジトリ自体は分割管理を使用していない。
 - `prompt.go`: 共通ルール、直接編集か分割編集かの指示、`check` の診断を更新依頼文にまとめる。旧形式・旧テンプレートの撤去案内は依頼文から除外する。ファイル変更や外部コマンド実行は行わない。
-- `remove.go`: 撤去対象を事前確認し、既定では予定だけを表示する。`--yes` で文書・分割ファイル・運用ブロックを撤去する。テンプレートと共通設定は保持する。
+- `remove.go`: 撤去対象を事前確認し、既定では予定だけを表示する。`--yes` で文書・旧 `ARCHITECTURE.md.template`・分割ファイル・運用ブロックを撤去し、ブロック除去後に空白だけになったエージェント設定ファイルも削除する。`--keep-architecture-md` は文書を保持して生成ヘッダーを除去するが、旧テンプレートは削除する。共通設定は保持し、対象直下のシンボリックリンクや不正なブロックは変更前に拒否する。
 - `*_test.go`: CLI の振る舞い、解析、生成結果、既存内容の保持、エラー時の動作を検証する。`check_test.go` と `template_test.go` は版の数値比較・通知と刻印も検証する。検証コマンドは `README.md` を参照する。
 
 <!-- arch:data-stores | Data stores | Name persistent stores and their tables or collections without detailed schemas. -->
@@ -59,9 +59,9 @@ flowchart TD
 <!-- arch:project-identification | About this project | Identify this project, its repository and maintainers, and its last reviewed date (YYYY-MM-DD). -->
 ## About this project
 
-- プロジェクト名: `archmd`（Go モジュール名も `archmd`）。アーキテクチャ文書とエージェント向け運用ルールの配置・維持・検証を補助する CLI。
+- プロジェクト名: `archmd`（Go モジュール名: `github.com/wasuken/archmd`）。アーキテクチャ文書とエージェント向け運用ルールの配置・維持・検証を補助する CLI。
 - 実装基盤: Go 1.22 以上、標準ライブラリのみ。実行時のネットワーク接続や外部サービスへの依存はない。
-- リポジトリの公開 URL・保守担当者: Not confirmed from the repository.
+- リポジトリ: `go.mod` のモジュールパスは `github.com/wasuken/archmd`。公開状況・保守担当者: Not confirmed from the repository.
 - ライセンス: Apache-2.0。`LICENSE` が全文、`NOTICE` が元テンプレートの出典・参照コミット・変更表示。
 - 最終確認日: 2026-11-14。
 

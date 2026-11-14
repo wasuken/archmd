@@ -21,6 +21,7 @@ func TestRemoveDryRunAndCommonUntouched(t *testing.T) {
 			dir := t.TempDir()
 			requireSuccess(t, "init", "--dir", dir)
 			requireSuccess(t, "split", "--dir", dir)
+			write(t, filepath.Join(dir, "ARCHITECTURE.md.template"), "custom template\r\n\x00")
 			before, configBefore := snapshotPromptFiles(t, dir), snapshotPromptFiles(t, conf)
 			args := []string{"remove", "--dir", dir}
 			if keep {
@@ -30,7 +31,7 @@ func TestRemoveDryRunAndCommonUntouched(t *testing.T) {
 			if code != 0 || stderr != "" || !strings.HasSuffix(out, "NOTHING WAS REMOVED. Re-run with --yes to apply.\n") {
 				t.Fatalf("dry-run: %d %q %q", code, out, stderr)
 			}
-			for _, text := range []string{"ARCHITECTURE.md:", ".architecture:", "AGENTS.md:", "手で書き足した", "再生成でき", "復元できない"} {
+			for _, text := range []string{"ARCHITECTURE.md:", "ARCHITECTURE.md.template: would remove", ".architecture:", "AGENTS.md:", "手で書き足した", "再生成でき", "復元できない"} {
 				if !strings.Contains(out, text) {
 					t.Errorf("missing preview or warning %q", text)
 				}
@@ -45,26 +46,29 @@ func TestRemoveDryRunAndCommonUntouched(t *testing.T) {
 			if !reflect.DeepEqual(configBefore, snapshotPromptFiles(t, conf)) {
 				t.Fatal("apply touched user configuration")
 			}
+			if _, err := os.Stat(filepath.Join(dir, "ARCHITECTURE.md.template")); !os.IsNotExist(err) {
+				t.Fatal("template was not removed", err)
+			}
 		})
 	}
 }
 
-func TestInitRemovePreservesLocalTemplate(t *testing.T) {
+func TestInitRemoveDeletesLocalTemplate(t *testing.T) {
 	config(t)
 	dir := t.TempDir()
 	path := filepath.Join(dir, "ARCHITECTURE.md.template")
 	write(t, path, "custom template\r\n\x00")
 	before := snapshotPromptFiles(t, dir)["ARCHITECTURE.md.template"]
 	requireSuccess(t, "init", "--dir", dir)
+	if before != snapshotPromptFiles(t, dir)["ARCHITECTURE.md.template"] {
+		t.Fatal("init changed the template")
+	}
 	out := requireSuccess(t, "remove", "--yes", "--dir", dir)
 	entries, err := os.ReadDir(dir)
-	if err != nil || len(entries) != 1 || entries[0].Name() != "ARCHITECTURE.md.template" {
+	if err != nil || len(entries) != 0 {
 		t.Fatalf("unexpected remaining files: %v %v", entries, err)
 	}
-	if read(t, path) != "custom template\r\n\x00" || before != snapshotPromptFiles(t, dir)["ARCHITECTURE.md.template"] {
-		t.Fatal("remove がテンプレートを変更した")
-	}
-	for _, result := range []string{"ARCHITECTURE.md: removed", ".architecture: skipped(not found)", "AGENTS.md: removed"} {
+	for _, result := range []string{"ARCHITECTURE.md: removed", "ARCHITECTURE.md.template: removed", ".architecture: skipped(not found)", "AGENTS.md: removed"} {
 		if !strings.Contains(out, result) {
 			t.Error(out)
 		}
@@ -149,6 +153,7 @@ func TestRemoveInvalidMarkersChangesNothing(t *testing.T) {
 			dir := baseProject(t)
 			requireSuccess(t, "split", "--dir", dir)
 			write(t, filepath.Join(dir, "AGENTS.md"), markers)
+			write(t, filepath.Join(dir, "ARCHITECTURE.md.template"), "custom template\n")
 			before := snapshotPromptFiles(t, dir)
 			args := []string{"remove", "--dir", dir}
 			if yes {
@@ -184,7 +189,7 @@ func TestRemovePreferredInstructionsAndMissingTargets(t *testing.T) {
 	}
 	empty := t.TempDir()
 	out = requireSuccess(t, "--dir", empty, "remove", "--yes")
-	if strings.Count(out, "skipped(not found)") != 3 {
+	if strings.Count(out, "skipped(not found)") != 4 {
 		t.Fatal(out)
 	}
 }
@@ -226,7 +231,7 @@ func TestRemoveKeepArchitectureBytes(t *testing.T) {
 }
 
 func TestRemoveRejectsSymlinksBeforeChanges(t *testing.T) {
-	for _, target := range []string{"ARCHITECTURE.md", ".architecture", "AGENTS.md"} {
+	for _, target := range []string{"ARCHITECTURE.md", "ARCHITECTURE.md.template", ".architecture", "AGENTS.md"} {
 		t.Run(target, func(t *testing.T) {
 			dir, outside := t.TempDir(), t.TempDir()
 			write(t, filepath.Join(outside, "common.md"), "outside data\n")
