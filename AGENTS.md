@@ -1,4 +1,4 @@
-<!-- archmd:start v0.3.5 -->
+<!-- archmd:start v0.3.6 -->
 <!-- Section layout inspired by https://architecture.md/ -->
 <!--
 出典: ARCHITECTURE.md Template by timajwilliams (https://github.com/timajwilliams/architecture)。
