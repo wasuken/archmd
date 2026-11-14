@@ -48,6 +48,7 @@ flowchart LR
 
 - Go 1.24 以上と標準ライブラリのみで動作するローカル CLI。`go build -o archmd .` でビルドし、実行時に LLM やネットワークへアクセスしない。
 - リリースは `vX.Y.Z` タグの作成・push で管理する。版表示・刻印は Go ビルド情報に基づき、開発ビルドは `dev` となる。
+- `release.sh` は最新タグのパッチ版を1つ上げ、検証、AGENTS.md のブロック再生成、必要なコミット、タグ作成、確認後の `origin` への push を行う。`--no-push` はローカルのコミットとタグ作成まで行う。
 - `LICENSE`・`NOTICE` はバイナリにも埋め込み、`archmd notices` で取得できる。再配布時の同梱要件は [README.md](README.md) を参照。
 
 <!-- arch:decisions | Key decisions | Summarize each decision and its reason in one line. -->

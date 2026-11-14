@@ -58,7 +58,9 @@ archmd prompt | <agent>
 
 ARCHITECTURE.md.template も `remove --yes` で削除されます。init はこのファイルに触りません。prompt は作り直しの手順を追加せず、check 結果から legacy-format と legacy-template の警告を除外します。欠落した節の `WARN [missing-marker]` と版の古いテンプレートの `INFO [outdated-template]` は従来どおり出力します。v0.x の間は破壊的変更を許容します。
 
-版は git タグが正。リリースは `git tag vX.Y.Z && git push origin vX.Y.Z` だけです。Go のビルド情報の版から先頭の `v` を除いて表示・刻印し、開発ビルドは `dev` とします。outdated の比較には両方の版の先頭の `X.Y.Z` を数値で使い、どちらかが取得できなければ通知しません。
+版は git タグが正。リリースは、作業ツリーがクリーンで `origin/main` と HEAD が一致する `main` ブランチで `./release.sh` を実行します。最新タグのパッチ版を1つ上げ、検証、AGENTS.md のブロック再生成、必要なコミット、タグ作成を行い、確認後にブランチとタグを push します。手でタグを打つと AGENTS.md のブロックの版がずれて `INFO [outdated-block]` が出るため、`release.sh` を使います。`./release.sh --no-push` はローカルのコミットとタグ作成まで行い、push はしません。
+
+Go のビルド情報の版から先頭の `v` を除いて表示・刻印し、開発ビルドは `dev` とします。outdated の比較には両方の版の先頭の `X.Y.Z` を数値で使い、どちらかが取得できなければ通知しません。
 
 ## Template changes
 
