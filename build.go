@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,6 +18,14 @@ func buildContent(dir string) ([]byte, error) {
 		return nil, err
 	}
 	sort.Slice(entries, func(i, j int) bool { return entries[i].Name() < entries[j].Name() })
+	// split のヘッダファイルがある場合は改行・空行を含めてそのまま結合する。
+	exact := false
+	for _, entry := range entries {
+		if entry.Name() == "00-header.md" && entry.Type().IsRegular() {
+			exact = true
+		}
+	}
+	var raw bytes.Buffer
 	parts := []string{generatedHeader}
 	for _, entry := range entries {
 		if filepath.Ext(entry.Name()) != ".md" || !entry.Type().IsRegular() {
@@ -26,7 +35,14 @@ func buildContent(dir string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+		if exact {
+			raw.Write(data)
+			continue
+		}
 		parts = append(parts, strings.TrimRight(normalize(string(data)), "\n"))
+	}
+	if exact {
+		return raw.Bytes(), nil
 	}
 	return []byte(strings.Join(parts, "\n\n") + "\n"), nil
 }

@@ -299,8 +299,8 @@ func TestSplitPreflightAndGeneratedHeader(t *testing.T) {
 	path := filepath.Join(dir, "ARCHITECTURE.md")
 	write(t, path, generatedHeader+"\r\n\r\n"+strings.ReplaceAll(read(t, path), "\n", "\r\n"))
 	requireSuccess(t, "split", "--dir", dir)
-	if strings.Count(read(t, path), generatedHeader) != 1 || strings.Contains(read(t, path), "\r") {
-		t.Fatal("generated header or LF incorrect")
+	if strings.Count(read(t, path), generatedHeader) != 1 || !strings.Contains(read(t, path), "\r") {
+		t.Fatal("generated header or original newline changed")
 	}
 	before := read(t, path)
 	code, _, _ := invoke("split", "--dir", dir)
@@ -401,6 +401,44 @@ func TestSplitEmptyHeaderAndCustomID(t *testing.T) {
 		}
 		if text != "" && read(t, filepath.Join(dir, ".architecture", "01-custom-日本語.md")) != text {
 			t.Fatal("custom ID was not preserved")
+		}
+	}
+}
+
+func TestSplitBuildEmptySectionsPreservesBytes(t *testing.T) {
+	config(t)
+	for _, newline := range []string{"\n", "\r\n", "\r"} {
+		for _, finalNewline := range []bool{false, true} {
+			dir := t.TempDir()
+			requireSuccess(t, "init", "--dir", dir)
+			path := filepath.Join(dir, "ARCHITECTURE.md")
+			original := strings.TrimSuffix(read(t, path), "\n")
+			if finalNewline {
+				original += "\n"
+			}
+			original = strings.ReplaceAll(original, "\n", newline)
+			write(t, path, original)
+			requireSuccess(t, "split", "--dir", dir)
+			for i, def := range knownSections {
+				if def.required {
+					continue
+				}
+				part := read(t, filepath.Join(dir, ".architecture", fmt.Sprintf("%02d-%s.md", i+1, def.id)))
+				want := def.marker() + newline
+				if i == len(knownSections)-1 && !finalNewline {
+					want = def.marker()
+				}
+				if part != want {
+					t.Fatalf("空の節 %s の内容が不正: %q", def.id, part)
+				}
+			}
+			requireSuccess(t, "build", "--dir", dir)
+			if read(t, path) != original {
+				t.Fatal("split → build でバイト列が変わった")
+			}
+			if out := requireSuccess(t, "check", "--dir", dir); !strings.Contains(out, "summary: 0 ERROR, 0 WARN, 0 INFO") {
+				t.Fatal(out)
+			}
 		}
 	}
 }

@@ -19,19 +19,9 @@ func splitProject(dir string) error {
 	if err != nil {
 		return err
 	}
-	lines := linesOf(string(data))
-	kept := make([]string, 0, len(lines))
-	for _, line := range lines {
-		if line != generatedHeader {
-			kept = append(kept, line)
-		}
-	}
-	content := strings.Join(kept, "\n")
-	if len(kept) > 0 {
-		content += "\n"
-	}
-	d := parseDocument(content)
-	// Only unmarked H2 headings block splitting; malformed marker headings remain check warnings.
+	d := parseDocument(string(data))
+	lines := rawLines(data)
+	// マーカーのない H2 だけ分割を止め、不正な本文は check の警告に任せる。
 	for _, line := range d.unknownHeadings {
 		if line <= len(d.lines) && isH2(d.lines[line-1]) {
 			return fmt.Errorf("split: H2 at line %d has no marker; add an ID marker first", line)
@@ -56,33 +46,25 @@ func splitProject(dir string) error {
 	if len(d.sections) > 0 {
 		headerEnd = d.sections[0].start
 	}
-	writePart := func(name string, lines []string) error {
-		content := strings.Join(lines, "\n")
-		if len(lines) > 0 {
-			content += "\n"
-		}
-		return os.WriteFile(filepath.Join(target, name), []byte(content), 0644)
+	writePart := func(name string, lines [][]byte) error {
+		return os.WriteFile(filepath.Join(target, name), bytes.Join(lines, nil), 0644)
 	}
-	if err := writePart("00-header.md", d.lines[:headerEnd]); err != nil {
+	if err := writePart("00-header.md", lines[:headerEnd]); err != nil {
 		return err
 	}
 	for i, s := range d.sections {
-		if err := writePart(fmt.Sprintf("%02d-%s.md", i+1, s.id), d.lines[s.start:s.end]); err != nil {
+		if err := writePart(fmt.Sprintf("%02d-%s.md", i+1, s.id), lines[s.start:s.end]); err != nil {
 			return err
 		}
 	}
 	if err := buildProject(dir); err != nil {
 		return err
 	}
-	expected, err := buildContent(dir)
-	if err != nil {
-		return err
-	}
 	actual, err := os.ReadFile(filepath.Join(dir, "ARCHITECTURE.md"))
 	if err != nil {
 		return err
 	}
-	if !bytes.Equal(actual, expected) {
+	if !bytes.Equal(actual, data) {
 		return fmt.Errorf("split: drift after build")
 	}
 	return nil
