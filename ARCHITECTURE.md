@@ -60,7 +60,7 @@ flowchart TD
 ## About this project
 
 - プロジェクト名: `archmd`（Go モジュール名: `github.com/wasuken/archmd`）。アーキテクチャ文書とエージェント向け運用ルールの配置・維持・検証を補助する CLI。
-- 実装基盤: Go 1.22 以上、標準ライブラリのみ。実行時のネットワーク接続や外部サービスへの依存はない。
+- 実装基盤: Go 1.24 以上、標準ライブラリのみ。実行時のネットワーク接続や外部サービスへの依存はない。
 - リポジトリ: `go.mod` のモジュールパスは `github.com/wasuken/archmd`。公開状況・保守担当者: Not confirmed from the repository.
 - ライセンス: Apache-2.0。`LICENSE` が全文、`NOTICE` が元テンプレートの出典・参照コミット・変更表示。
 - 最終確認日: 2026-11-14。
