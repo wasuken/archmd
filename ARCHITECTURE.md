@@ -10,71 +10,63 @@ SPDX-License-Identifier: Apache-2.0
 # Architecture Overview
 
 <!-- arch:project-structure | Project layout | Map the main directories to their responsibilities. -->
-## Project layout
+## プロジェクト構成
 
-- ルート直下: 単一の Go `main` パッケージ。CLI、文書の初期配置・検証・分割・結合・撤去、更新依頼文の生成を実装する。
-- `embed/`: `go:embed` でバイナリに含める文書テンプレートとエージェント向け運用ルール。ルートの `LICENSE`・`NOTICE` もバイナリへ埋め込み、`notices` で全文を出力する。
-- `*_test.go` と `testdata/`: コマンド・文書解析・ファイル操作のテストと、期待出力（golden）・入力文書。
-- `README.md`: コマンドの利用方法、設定、検証方法、仕様上の前提。
-- `ARCHITECTURE.md`: 全12節のマーカーと現在の構成を記録する。このリポジトリには現在 `AGENTS.md` / `CLAUDE.md` はない。生成先のエージェント向け運用ルールは `embed/agents-block.md` で管理する。
+- ルート直下: 単一の `package main` に CLI と文書操作を実装。`*_test.go` は各機能とコマンドのテスト。
+- `embed/`: バイナリに埋め込む文書テンプレートとエージェント向け運用ルール。
+- `testdata/`: Markdown の入力例と出力比較用の golden ファイル。
+- `README.md`: 利用・検証・リリース手順。`LICENSE` と `NOTICE` はライセンスと出典表示。
 
 <!-- arch:high-level-diagram | System map | Show the system overview and connections between major components. -->
-## System map
+## システム構成
 
 ```mermaid
-flowchart TD
-    User[利用者・コーディングエージェント] --> CLI[main.go: CLI]
-    CLI --> Commands[init / prompt / check / split / build / remove]
-    Embedded[embed/: 埋め込み素材] --> Commands
-    Common[ユーザー設定: architecture-md/common.md] --> Rules[agents.go: 共通ルール]
-    Rules --> Commands
-    Commands --> Parser[sections.go: 節定義・文書解析]
-    Commands --> Files[対象ディレクトリの文書・エージェント設定]
-    Commands --> Output[標準出力・標準エラー・終了コード]
+flowchart LR
+  CLI["main.go: CLI"] --> Commands["init / prompt / check / split / build / remove"]
+  Templates["embed/・LICENSE・NOTICE"] --> Helpers["template.go・agents.go"]
+  Rules["ユーザー設定: architecture-md/common.md"] --> Helpers
+  Helpers --> Commands
+  Parser["sections.go: マーカー・節の解析"] --> Commands
+  Commands --> Files["対象ディレクトリ: ARCHITECTURE.md・AGENTS.md / CLAUDE.md・.architecture/"]
 ```
 
-実行時の処理はローカルファイルで完結する。`prompt` は更新依頼文を出力し、エージェントや LLM の呼び出しは利用者が外部で行う。
-
 <!-- arch:core-components | Components | Describe each central module and the responsibility it owns. -->
-## Components
+## 主要コンポーネント
 
-- `main.go`: 引数・対象ディレクトリ・行数制限を解析し、各コマンドへ振り分ける。ヘルプ、ビルド情報からの版取得（開発ビルドは `dev`）、バージョン表示、終了コードもここで扱う。
-- `sections.go`: 既知の12節と必須4節を定義する。改行を正規化し、コードフェンスを除外して ID マーカーと H2 を解析する。節の追加・解析仕様の変更は検証・分割・骨組み生成に影響する。
-- `template.go` と `embed/`: 配布素材を埋め込み、テンプレートのプレースホルダーを `main.go` の実行中の版で生成時に置換する。マーカーには見出しとヒントを含め、骨組みには出典・変更・ライセンス表示、全12節のマーカーと必須4節の見出しを含める。配布する文書・ルールの変更箇所。
-- `init.go`: 対象に骨組みを新規配置する。旧テンプレートファイルは作成・変更しない。既存のエージェント設定がある場合は追記用ブロックを出力する。`--write-agents` 指定時は AGENTS.md（無ければ CLAUDE.md）のマーカーを検証し、既存バイト列を保持して追記する。
-- `agents.go`: `AGENTS.md` / `CLAUDE.md` の検出、運用ブロックの生成・除去、`os.UserConfigDir()/architecture-md/common.md` の共通ルール読み込み。`check` の参照確認は `AGENTS.md` を優先する。
-- `check.go`: 必須節、ID の重複、見出し、マーカーを除く行数、エージェント設定からの参照を検証する。任意節のマーカー欠落、旧マーカー形式、旧テンプレートの残存は WARN で通知する。テンプレートと優先するエージェント設定のブロックが古い版なら INFO で通知する。比較には版の先頭の数値3要素を使い、取得できない場合は通知しない。`.architecture/` がある場合は生成結果とのバイト単位の一致も確認する。
-- `split.go` / `build.go`: 文書を `.architecture/` のヘッダー・節ファイルへ分割し、直下の Markdown をファイル名順に結合して `ARCHITECTURE.md` を生成する。`00-header.md` がある分割形式では改行・空行・末尾改行を含めた元のバイト列を保持し、手動構成では生成ヘッダーと区切りを付ける。このリポジトリ自体は分割管理を使用していない。
-- `prompt.go`: 共通ルール、直接編集か分割編集かの指示、`check` の診断を更新依頼文にまとめる。旧形式・旧テンプレートの撤去案内は依頼文から除外する。ファイル変更や外部コマンド実行は行わない。
-- `remove.go`: 撤去対象を事前確認し、既定では予定だけを表示する。`--yes` で文書・旧 `ARCHITECTURE.md.template`・分割ファイル・運用ブロックを撤去し、ブロック除去後に空白だけになったエージェント設定ファイルも削除する。`--keep-architecture-md` は文書を保持して生成ヘッダーを除去するが、旧テンプレートは削除する。共通設定は保持し、対象直下のシンボリックリンクや不正なブロックは変更前に拒否する。
-- `*_test.go`: CLI の振る舞い、解析、生成結果、既存内容の保持、エラー時の動作を検証する。`check_test.go` と `template_test.go` は版の数値比較・通知と刻印も検証する。検証コマンドは `README.md` を参照する。
+- `main.go`: コマンド・引数・終了コードを制御し、Go ビルド情報から版を取得する。
+- `sections.go`: 全12節の ID・見出し・ヒントと必須4節を定義し、コードフェンスを考慮してマーカーと H2 を解析する。文書形式の変更は生成・検証・分割に影響する。
+- `template.go`・`agents.go`: 埋め込み資源からテンプレート・骨組み・運用ブロックを生成する。共通ルールの読み込み、エージェント設定の選択、改行を保持する処理も担う。
+- `init.go`・`prompt.go`: 文書と運用ルールの初期配置、およびルール・検証診断を含む更新依頼文の出力。`prompt` 自体はファイルを変更せず、外部コマンドも呼ばない。
+- `check.go`: 必須 ID・重複・見出し・行数・運用ルールへの参照・版を診断し、分割構成では生成物とのバイト単位の一致も検証する。
+- `split.go`・`build.go`: 文書を対象側の `.architecture/` に節別に分割し、ファイル名順に結合する。`00-header.md` を持つ分割形式では元の改行・空行・末尾改行を保持する。
+- `remove.go`: 文書・旧テンプレート・分割ファイル・運用ブロックの撤去を計画する。既定は dry-run、`--yes` で適用し、`--keep-architecture-md` で本文を残せる。
 
 <!-- arch:data-stores | Data stores | Name persistent stores and their tables or collections without detailed schemas. -->
 <!-- arch:external-integrations | External services | Identify outside services and the reason each connection exists. -->
 <!-- arch:deployment-infrastructure | Build and deploy | Outline where the system runs and how changes reach it. -->
 ## ビルドと配布
 
-- ローカルで動作する単一の CLI バイナリ。`go build -o archmd .` でビルドする。
-- リリース版は Git タグ `vX.Y.Z` を基準とし、Go のビルド情報から版を取得する。開発ビルドの表示は `dev`。
-- ソース・バイナリの再配布には `LICENSE` と `NOTICE` を同梱する。バイナリの `notices` コマンドからも表示できる。
+- Go 1.24 以上と標準ライブラリのみで動作するローカル CLI。`go build -o archmd .` でビルドし、実行時に LLM やネットワークへアクセスしない。
+- リリースは `vX.Y.Z` タグの作成・push で管理する。版表示・刻印は Go ビルド情報に基づき、開発ビルドは `dev` となる。
+- `LICENSE`・`NOTICE` はバイナリにも埋め込み、`archmd notices` で取得できる。再配布時の同梱要件は [README.md](README.md) を参照。
 
 <!-- arch:decisions | Key decisions | Summarize each decision and its reason in one line. -->
 <!-- arch:security-considerations | Security | Summarize access boundaries and protections for sensitive information. -->
+## ファイル操作の保護
+
+- `remove.go` は対象直下のシンボリックリンクや想定外のファイル種別を拒否し、`agents.go` は不正・入れ子の運用ブロックを拒否する。撤去計画は変更前に全対象を検証するが、適用中の OS エラーに対するロールバックは行わない。
+- `split.go` は重複 ID とファイル名に使えない文字を含む ID を書き込み前に拒否する。
+
 <!-- arch:dev-testing-environment | Development and testing | Name essential development tools and checks and link to setup instructions. -->
 ## 開発と検証
 
-- Go 1.24 以上を使用する。外部モジュールへの依存はない。
-- `go test ./...`、`go vet ./...`、`gofmt -l .` で検証する。テストは一時ディレクトリと `testdata/` の入力・期待出力を使う。
-- コマンド・共通ルール設定・文書運用の詳細は [README.md](README.md) を参照する。
+- `go test ./...` で機能・CLI・golden 出力を検証し、`go vet ./...` と `gofmt -l .` で静的検査・書式確認を行う。
+- 文書更新後は `archmd check` を実行する。利用・設定・検証手順は [README.md](README.md) を参照。
 
 <!-- arch:future-considerations | Roadmap and known debt | Record likely architectural changes and unresolved design constraints. -->
 <!-- arch:project-identification | About this project | Identify this project, its repository and maintainers, and its last reviewed date (YYYY-MM-DD). -->
-## About this project
+## プロジェクト情報
 
-- プロジェクト名: `archmd`（Go モジュール名: `github.com/wasuken/archmd`）。アーキテクチャ文書とエージェント向け運用ルールの配置・維持・検証を補助する CLI。
-- 実装基盤: Go 1.24 以上、標準ライブラリのみ。実行時のネットワーク接続や外部サービスへの依存はない。
-- リポジトリ: `go.mod` のモジュールパスは `github.com/wasuken/archmd`。公開状況・保守担当者: Not confirmed from the repository.
-- ライセンス: Apache-2.0。`LICENSE` が全文、`NOTICE` が元テンプレートの出典・参照コミット・変更表示。
-- 最終確認日: 2026-11-14。
+archmd は、ARCHITECTURE.md とエージェント向け運用ルールの配置・更新依頼・検証を補助する CLI。リポジトリは `go.mod` に記載の `github.com/wasuken/archmd`。最終確認日: 2026-11-14。
 
 <!-- arch:glossary | Glossary | Define local terminology that a new contributor needs to understand. -->
