@@ -1,4 +1,4 @@
-<!-- Section layout inspired by https://architecture.md/ -->
+<!-- archmd template v{{VERSION}} | Section layout inspired by https://architecture.md/ -->
 # Architecture Overview
 
 <!-- arch:project-structure -->

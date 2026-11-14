@@ -17,7 +17,7 @@ func TestPhysicalLineCounts(t *testing.T) {
 	}
 }
 func TestTemplateStructure(t *testing.T) {
-	if !strings.HasPrefix(architectureTemplate, "<!-- Section layout inspired by https://architecture.md/ -->\n# ") {
+	if !strings.HasPrefix(architectureTemplate, "<!-- archmd template v"+version+" | Section layout inspired by https://architecture.md/ -->\n# ") {
 		t.Fatal("template preamble")
 	}
 	d := parseDocument(architectureTemplate)

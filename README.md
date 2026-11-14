@@ -44,6 +44,14 @@ archmd prompt | codex exec - && archmd check
 
 検証: `go test ./...`、`go vet ./...`、`gofmt -l .`。
 
+テンプレートの先頭コメントとエージェント設定の archmd ブロックには、生成した archmd の版が入ります。`check` はテンプレートまたはブロックの版が実行中の archmd より古い場合、`INFO [outdated-template]` / `INFO [outdated-block]` を出します。これらは情報通知で、ERROR が無ければ終了コードは 0 です。版の刻印が無い既存ファイルには通知しません。
+
+更新は自動で行いません。テンプレートの差分は `archmd template` の出力と見比べて手で反映してください。ブロックも必要な変更を確認して手で反映します。`init` は既存テンプレートを上書きしません。
+
+## Template changes
+
+- 0.1.0: テンプレート先頭に版を刻印。古いテンプレート・ブロックを `check` の INFO で通知。
+
 節構成の発想は https://architecture.md/ (https://github.com/timajwilliams/architecture) に着想を得ている。文言・ヒント・指示文は独自に書いたもの。
 
 ## tips

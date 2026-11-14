@@ -6,7 +6,44 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
 )
+
+var templateVersionPattern = regexp.MustCompile(`archmd template v(\d+\.\d+\.\d+)(?:[ \t|]|$)`)
+var blockVersionPattern = regexp.MustCompile(`<!-- archmd:start v(\d+\.\d+\.\d+) -->`)
+var versionPattern = regexp.MustCompile(`^(\d+)\.(\d+)\.(\d+)$`)
+
+func parseVersion(value string) ([3]int, bool) {
+	var parts [3]int
+	match := versionPattern.FindStringSubmatch(value)
+	if match == nil {
+		return parts, false
+	}
+	for i := range parts {
+		n, err := strconv.Atoi(match[i+1])
+		if err != nil {
+			return parts, false
+		}
+		parts[i] = n
+	}
+	return parts, true
+}
+
+func isOlderVersion(stored, current string) bool {
+	old, oldOK := parseVersion(stored)
+	now, nowOK := parseVersion(current)
+	if !oldOK || !nowOK {
+		return false
+	}
+	for i := range old {
+		if old[i] != now[i] {
+			return old[i] < now[i]
+		}
+	}
+	return false
+}
 
 func checkProject(dir string, maxLines, maxSectionLines int, out io.Writer) int {
 	errors, warnings, infos := 0, 0, 0
@@ -75,13 +112,26 @@ func checkProject(dir string, maxLines, maxSectionLines int, out io.Writer) int 
 	} else if !os.IsNotExist(statErr) {
 		report("ERROR", "io", statErr.Error())
 	}
-	instructions, agentsErr := preferredAgentInstructions(dir)
+	if template, err := os.ReadFile(filepath.Join(dir, "ARCHITECTURE.md.template")); err == nil {
+		firstLine, _, _ := strings.Cut(string(template), "\n")
+		match := templateVersionPattern.FindStringSubmatch(strings.TrimSuffix(firstLine, "\r"))
+		if match != nil && isOlderVersion(match[1], version) {
+			report("INFO", "outdated-template", fmt.Sprintf("ARCHITECTURE.md.template is v%s; this archmd is v%s", match[1], version))
+		}
+	}
+	instructions, agentName, agentsErr := preferredAgentInstructions(dir)
 	if os.IsNotExist(agentsErr) {
 		report("WARN", "no-agents-file", "neither AGENTS.md nor CLAUDE.md exists")
 	} else if agentsErr != nil {
 		report("ERROR", "io", agentsErr.Error())
 	} else if !hasArchitectureReference(instructions) {
 		report("WARN", "no-reference", "agent instructions do not mention ARCHITECTURE.md")
+	}
+	if agentsErr == nil {
+		match := blockVersionPattern.FindSubmatch(instructions)
+		if match != nil && isOlderVersion(string(match[1]), version) {
+			report("INFO", "outdated-block", fmt.Sprintf("archmd block in %s is v%s; this archmd is v%s", agentName, match[1], version))
+		}
 	}
 	fmt.Fprintf(out, "lines: %d\nsummary: %d ERROR, %d WARN, %d INFO\n", lineCount, errors, warnings, infos)
 	if errors > 0 {

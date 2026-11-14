@@ -32,14 +32,14 @@ flowchart TD
 
 - `main.go`: 引数・対象ディレクトリ・行数制限を解析し、各コマンドへ振り分ける。ヘルプ、バージョン表示、終了コードもここで扱う。
 - `sections.go`: 既知の12節と必須4節を定義する。改行を正規化し、コードフェンスを除外して ID マーカーと H2 を解析する。節の追加・解析仕様の変更は検証・分割・骨組み生成に影響する。
-- `template.go` と `embed/`: 配布素材を埋め込み、必須節だけの骨組みを生成する。配布する文書・ルールの変更箇所。
+- `template.go` と `embed/`: 配布素材を埋め込み、テンプレートのプレースホルダーを `main.go` の版定数で置換する。骨組みは従来の出典コメントと必須節だけで生成する。配布する文書・ルールの変更箇所。
 - `init.go`: 対象にテンプレートと骨組みを新規配置する。既存のエージェント設定がある場合は追記用ブロックを出力する。`--write-agents` 指定時は AGENTS.md（無ければ CLAUDE.md）のマーカーを検証し、既存バイト列を保持して追記する。
 - `agents.go`: `AGENTS.md` / `CLAUDE.md` の検出、運用ブロックの生成・除去、`os.UserConfigDir()/architecture-md/common.md` の共通ルール読み込み。`check` の参照確認は `AGENTS.md` を優先する。
-- `check.go`: 必須節、ID の重複、見出し、行数、エージェント設定からの参照を検証する。`.architecture/` がある場合は生成結果とのバイト単位の一致も確認する。
+- `check.go`: 必須節、ID の重複、見出し、行数、エージェント設定からの参照を検証する。テンプレートと優先するエージェント設定のブロックが古い版なら INFO で通知する。`.architecture/` がある場合は生成結果とのバイト単位の一致も確認する。
 - `split.go` / `build.go`: 文書を `.architecture/` のヘッダー・節ファイルへ分割し、直下の Markdown をファイル名順に結合して `ARCHITECTURE.md` を生成する。このリポジトリ自体は分割管理を使用していない。
 - `prompt.go`: 共通ルール、直接編集か分割編集かの指示、`check` の診断を更新依頼文にまとめる。ファイル変更や外部コマンド実行は行わない。
 - `remove.go`: 撤去対象を事前確認し、既定では予定だけを表示する。`--yes` で文書・分割ファイル・運用ブロックを撤去する。テンプレートと共通設定は保持する。
-- `main_test.go`、`init_test.go`、`sections_test.go`、`prompt_test.go`、`remove_test.go`、`guidance_test.go`: CLI の振る舞い、解析、生成結果、既存内容の保持、エラー時の動作を検証する。検証コマンドは `README.md` を参照する。
+- `*_test.go`: CLI の振る舞い、解析、生成結果、既存内容の保持、エラー時の動作を検証する。`check_test.go` と `template_test.go` は版の数値比較・通知と刻印も検証する。検証コマンドは `README.md` を参照する。
 
 <!-- arch:project-identification -->
 ## About this project

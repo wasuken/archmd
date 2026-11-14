@@ -134,10 +134,11 @@ func hasArchitectureReference(content []byte) bool {
 	return strings.Contains(string(content), "ARCHITECTURE.md")
 }
 
-func preferredAgentInstructions(dir string) ([]byte, error) {
+func preferredAgentInstructions(dir string) ([]byte, string, error) {
 	content, err := os.ReadFile(filepath.Join(dir, "AGENTS.md"))
 	if os.IsNotExist(err) {
-		return os.ReadFile(filepath.Join(dir, "CLAUDE.md"))
+		content, err = os.ReadFile(filepath.Join(dir, "CLAUDE.md"))
+		return content, "CLAUDE.md", err
 	}
-	return content, err
+	return content, "AGENTS.md", err
 }
